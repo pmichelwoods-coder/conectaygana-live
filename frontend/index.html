@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Partner Hand - Administrador</title>
+    <title>Digital Partner Hand - Admin</title>
     <style>
         * {
             margin: 0;
@@ -177,49 +177,49 @@
     <div class="container">
         <div class="header">
             <h1>🏢 Digital Partner Hand</h1>
-            <p>Panel de Administración</p>
+            <p>Admin Dashboard</p>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
-                <h3>Total Socios</h3>
+                <h3>Total Partners</h3>
                 <div class="number" id="totalPartners">0</div>
             </div>
             <div class="stat-card">
-                <h3>Total Referidos</h3>
+                <h3>Total Referrals</h3>
                 <div class="number" id="totalReferrals">0</div>
             </div>
             <div class="stat-card">
-                <h3>Aprobaciones Pendientes</h3>
+                <h3>Pending Approvals</h3>
                 <div class="number" id="pendingApprovals">0</div>
             </div>
             <div class="stat-card">
-                <h3>Pagos Pendientes</h3>
+                <h3>Pending Payments</h3>
                 <div class="number" id="pendingPayments">0</div>
             </div>
         </div>
 
         <div class="card">
-            <h2>🔗 Generar Enlace Maestro de Referidos</h2>
-            <p style="color: #666; margin-bottom: 15px;">Crea un enlace maestro que los nuevos usuarios pueden usar para unirse</p>
-            <button class="btn" onclick="generateMasterLink()">Generar Nuevo Enlace</button>
+            <h2>🔗 Generate Master Referral Link</h2>
+            <p style="color: #666; margin-bottom: 15px;">Create a master link that new users can use to join</p>
+            <button class="btn" onclick="generateMasterLink()">Generate New Link</button>
             <div id="masterLinkResult" style="margin-top: 15px; display: none;">
                 <div class="link-code" id="masterLinkCode"></div>
-                <button class="copy-btn" onclick="copyMasterLink()">📋 Copiar Enlace</button>
+                <button class="copy-btn" onclick="copyMasterLink()">📋 Copy Link</button>
             </div>
         </div>
 
         <div class="card">
-            <h2>📋 Aprobaciones Pendientes</h2>
+            <h2>📋 Pending Approvals</h2>
             <div id="pendingApprovalsList">
-                <p style="color: #666;">Cargando aprobaciones pendientes...</p>
+                <p style="color: #666;">Loading pending approvals...</p>
             </div>
         </div>
 
         <div class="card">
-            <h2>💰 Pagos Pendientes</h2>
+            <h2>💰 Pending Payments</h2>
             <div id="pendingPaymentsList">
-                <p style="color: #666;">Cargando pagos pendientes...</p>
+                <p style="color: #666;">Loading pending payments...</p>
             </div>
         </div>
     </div>
@@ -256,7 +256,7 @@
                 const container = document.getElementById('pendingApprovalsList');
                 
                 if (data.length === 0) {
-                    container.innerHTML = '<p style="color: #48bb78;">✅ No hay aprobaciones pendientes</p>';
+                    container.innerHTML = '<p style="color: #48bb78;">✅ No pending approvals</p>';
                     return;
                 }
 
@@ -264,20 +264,20 @@
                     <div class="pending-item">
                         <div class="pending-info">
                             <strong>${item.full_name}</strong>
-                            <small>Transacción: ${item.transaction_number}</small>
+                            <small>Transaction: ${item.transaction_number}</small>
                             <small>WhatsApp: ${item.whatsapp_number}</small>
-                            <small>Código de Referido: ${item.referral_code || 'Ninguno'}</small>
-                            <small>Enviado: ${new Date(item.submission_date).toLocaleDateString('es-DO')}</small>
+                            <small>Referral Code: ${item.referral_code || 'None'}</small>
+                            <small>Submitted: ${new Date(item.submission_date).toLocaleDateString()}</small>
                         </div>
                         <div class="pending-actions">
-                            <button class="approve-btn" onclick="processApproval(${item.id}, 'approve')">✅ Aprobar</button>
-                            <button class="reject-btn" onclick="processApproval(${item.id}, 'reject')">❌ Rechazar</button>
+                            <button class="approve-btn" onclick="processApproval(${item.id}, 'approve')">✅ Approve</button>
+                            <button class="reject-btn" onclick="processApproval(${item.id}, 'reject')">❌ Reject</button>
                         </div>
                     </div>
                 `).join('');
             } catch (error) {
                 console.error('Error loading pending approvals:', error);
-                document.getElementById('pendingApprovalsList').innerHTML = '<p style="color: #fc8181;">Error cargando aprobaciones</p>';
+                document.getElementById('pendingApprovalsList').innerHTML = '<p style="color: #fc8181;">Error loading approvals</p>';
             }
         }
 
@@ -289,7 +289,7 @@
                 const container = document.getElementById('pendingPaymentsList');
                 
                 if (data.length === 0) {
-                    container.innerHTML = '<p style="color: #48bb78;">✅ No hay pagos pendientes</p>';
+                    container.innerHTML = '<p style="color: #48bb78;">✅ No pending payments</p>';
                     return;
                 }
 
@@ -297,18 +297,18 @@
                     <div class="pending-item">
                         <div class="pending-info">
                             <strong>${item.full_name || item.customer_number}</strong>
-                            <small>Monto: RD$${item.amount.toLocaleString()}</small>
-                            <small>Cliente: ${item.customer_number}</small>
-                            <small>Fecha: ${new Date(item.payment_date).toLocaleDateString('es-DO')}</small>
+                            <small>Amount: RD$${item.amount.toLocaleString()}</small>
+                            <small>Customer: ${item.customer_number}</small>
+                            <small>Date: ${new Date(item.payment_date).toLocaleDateString()}</small>
                         </div>
                         <div class="pending-actions">
-                            <button class="approve-btn" onclick="processPayment('${item.customer_number}')">💰 Procesar Pago</button>
+                            <button class="approve-btn" onclick="processPayment('${item.customer_number}')">💰 Process Payment</button>
                         </div>
                     </div>
                 `).join('');
             } catch (error) {
                 console.error('Error loading pending payments:', error);
-                document.getElementById('pendingPaymentsList').innerHTML = '<p style="color: #fc8181;">Error cargando pagos</p>';
+                document.getElementById('pendingPaymentsList').innerHTML = '<p style="color: #fc8181;">Error loading payments</p>';
             }
         }
 
@@ -325,11 +325,11 @@
                     resultDiv.style.display = 'block';
                     document.getElementById('masterLinkCode').textContent = 
                         `${window.location.origin}/join?ref=${data.linkCode}`;
-                    alert('✅ Enlace maestro generado exitosamente!');
+                    alert('✅ Master link generated successfully!');
                 }
             } catch (error) {
                 console.error('Error generating master link:', error);
-                alert('Error generando enlace maestro');
+                alert('Error generating master link');
             }
         }
 
@@ -337,13 +337,13 @@
         function copyMasterLink() {
             const code = document.getElementById('masterLinkCode').textContent;
             navigator.clipboard.writeText(code).then(() => {
-                alert('📋 Enlace copiado al portapapeles!');
+                alert('📋 Link copied to clipboard!');
             });
         }
 
         // Process approval
         async function processApproval(id, action) {
-            if (!confirm(`¿Estás seguro de que quieres ${action === 'approve' ? 'aprobar' : 'rechazar'} esta solicitud?`)) return;
+            if (!confirm(`Are you sure you want to ${action === 'approve' ? 'approve' : 'reject'} this request?`)) return;
             
             try {
                 const response = await fetch(`${API_URL}/api/admin/process-approval`, {
@@ -354,20 +354,20 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert('✅ Operación exitosa!');
+                    alert('✅ Operation successful!');
                     loadDashboard();
                 } else {
                     alert('❌ Error: ' + data.error);
                 }
             } catch (error) {
                 console.error('Error processing approval:', error);
-                alert('Error procesando la solicitud');
+                alert('Error processing request');
             }
         }
 
         // Process payment
         async function processPayment(customerNumber) {
-            if (!confirm(`¿Procesar pago para ${customerNumber}?`)) return;
+            if (!confirm(`Process payment for ${customerNumber}?`)) return;
             
             try {
                 const response = await fetch(`${API_URL}/api/admin/process-payment`, {
@@ -378,14 +378,14 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert('✅ Pago procesado exitosamente!');
+                    alert('✅ Payment processed successfully!');
                     loadDashboard();
                 } else {
                     alert('❌ Error: ' + data.error);
                 }
             } catch (error) {
                 console.error('Error processing payment:', error);
-                alert('Error procesando el pago');
+                alert('Error processing payment');
             }
         }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Partner Hand - Panel de Cliente</title>
+    <title>Digital Partner Hand - Customer Panel</title>
     <style>
         * {
             margin: 0;
@@ -130,6 +130,10 @@
         .hidden {
             display: none;
         }
+        .bilingual {
+            color: #666;
+            font-size: 0.85em;
+        }
         @media (max-width: 600px) {
             .info-grid {
                 grid-template-columns: 1fr;
@@ -141,68 +145,68 @@
     <div class="container">
         <div class="card" style="text-align: center;">
             <h1>👤 Digital Partner Hand</h1>
-            <p style="color: #666;">Panel de Cliente</p>
+            <p class="bilingual">Customer Panel / Panel de Cliente</p>
         </div>
 
         <div class="card" id="loginCard">
-            <h2>🔐 Verificar Tu Estado</h2>
+            <h2>🔐 Check Your Status / Verificar Tu Estado</h2>
             <div class="input-group">
-                <label>Número de Cliente</label>
-                <input type="text" id="customerNumber" placeholder="Ingresa tu número de cliente" maxlength="8" style="text-transform: uppercase;">
+                <label>Customer Number / Número de Cliente</label>
+                <input type="text" id="customerNumber" placeholder="Enter your customer number" maxlength="8" style="text-transform: uppercase;">
             </div>
-            <button class="btn" onclick="checkStatus()">📊 Verificar Estado</button>
+            <button class="btn" onclick="checkStatus()">📊 Check Status / Verificar Estado</button>
         </div>
 
         <div class="card hidden" id="dashboardCard">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                <h2>📊 Panel de Control</h2>
-                <button class="btn" onclick="logout()" style="width: auto; padding: 8px 20px; background: #fc8181;">Cerrar Sesión</button>
+                <h2>📊 Dashboard / Panel de Control</h2>
+                <button class="btn" onclick="logout()" style="width: auto; padding: 8px 20px; background: #fc8181;">Logout / Cerrar Sesión</button>
             </div>
             
             <div class="info-grid">
                 <div class="info-item">
-                    <label>Número de Cliente</label>
+                    <label>Customer Number / Número</label>
                     <div class="value" id="displayNumber">-</div>
                 </div>
                 <div class="info-item">
-                    <label>Estado</label>
+                    <label>Status / Estado</label>
                     <div class="value" id="displayStatus">-</div>
                 </div>
                 <div class="info-item">
-                    <label>Días Restantes</label>
+                    <label>Days Left / Días Restantes</label>
                     <div class="value" id="displayDays">-</div>
                 </div>
                 <div class="info-item">
-                    <label>Total Referidos</label>
+                    <label>Total Referrals / Referidos</label>
                     <div class="value" id="displayReferrals">0</div>
                 </div>
                 <div class="info-item">
-                    <label>Pagos Esperados</label>
+                    <label>Expected Payouts / Pagos Esperados</label>
                     <div class="value" id="displayPayouts">0</div>
                 </div>
                 <div class="info-item">
-                    <label>Total Ganado</label>
+                    <label>Total Earned / Total Ganado</label>
                     <div class="value" id="displayEarned">RD$0</div>
                 </div>
             </div>
 
             <div style="margin: 20px 0;">
-                <h3>🔗 Tu Enlace de Referidos</h3>
-                <div class="referral-link" id="referralLink">Cargando...</div>
-                <button class="copy-btn" onclick="copyReferralLink()">📋 Copiar Enlace</button>
+                <h3>🔗 Your Referral Link / Tu Enlace de Referidos</h3>
+                <div class="referral-link" id="referralLink">Loading...</div>
+                <button class="copy-btn" onclick="copyReferralLink()">📋 Copy Link / Copiar Enlace</button>
             </div>
 
             <div style="margin: 20px 0;">
-                <h3>📋 Historial de Referidos</h3>
+                <h3>📋 Referral History / Historial de Referidos</h3>
                 <div id="referralHistory">
-                    <p style="color: #666;">Sin referidos aún</p>
+                    <p style="color: #666;">No referrals yet / Sin referidos aún</p>
                 </div>
             </div>
 
             <div style="margin: 20px 0;">
-                <h3>💰 Historial de Pagos</h3>
+                <h3>💰 Payment History / Historial de Pagos</h3>
                 <div id="paymentHistory">
-                    <p style="color: #666;">Sin pagos aún</p>
+                    <p style="color: #666;">No payments yet / Sin pagos aún</p>
                 </div>
             </div>
         </div>
@@ -216,7 +220,7 @@
             const customerNumber = document.getElementById('customerNumber').value.trim().toUpperCase();
             
             if (!customerNumber) {
-                alert('Por favor ingresa tu número de cliente');
+                alert('Please enter your customer number / Por favor ingresa tu número de cliente');
                 return;
             }
 
@@ -229,7 +233,7 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.error || 'Número de cliente inválido');
+                    throw new Error(error.error || 'Invalid customer number / Número de cliente inválido');
                 }
 
                 const data = await response.json();
@@ -251,12 +255,12 @@
             // Status
             const statusEl = document.getElementById('displayStatus');
             if (data.isActive) {
-                statusEl.innerHTML = '<span class="status-badge status-active">✅ Activo</span>';
+                statusEl.innerHTML = '<span class="status-badge status-active">✅ Active / Activo</span>';
             } else {
-                statusEl.innerHTML = '<span class="status-badge status-inactive">❌ Expirado</span>';
+                statusEl.innerHTML = '<span class="status-badge status-inactive">❌ Expired / Expirado</span>';
             }
             
-            document.getElementById('displayDays').textContent = data.daysLeft + ' días';
+            document.getElementById('displayDays').textContent = data.daysLeft + ' days / días';
             document.getElementById('displayReferrals').textContent = data.referralCount || 0;
             document.getElementById('displayPayouts').textContent = data.expectedPayouts || 0;
             document.getElementById('displayEarned').textContent = `RD$${data.totalPaid.toLocaleString() || 0}`;
@@ -272,7 +276,7 @@
                     `<div style="padding: 5px 0; border-bottom: 1px solid #e2e8f0;">🔹 ${ref}</div>`
                 ).join('');
             } else {
-                historyEl.innerHTML = '<p style="color: #666;">Sin referidos aún</p>';
+                historyEl.innerHTML = '<p style="color: #666;">No referrals yet / Sin referidos aún</p>';
             }
 
             // Payment history
@@ -285,7 +289,7 @@
                     </div>`
                 ).join('');
             } else {
-                paymentEl.innerHTML = '<p style="color: #666;">Sin pagos aún</p>';
+                paymentEl.innerHTML = '<p style="color: #666;">No payments yet / Sin pagos aún</p>';
             }
         }
 
@@ -293,7 +297,7 @@
         function copyReferralLink() {
             const link = document.getElementById('referralLink').textContent;
             navigator.clipboard.writeText(link).then(() => {
-                alert('📋 Enlace copiado al portapapeles!');
+                alert('📋 Link copied to clipboard! / ¡Enlace copiado al portapapeles!');
             });
         }
 

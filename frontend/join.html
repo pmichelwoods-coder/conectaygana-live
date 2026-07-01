@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Partner Hand - Unirse</title>
+    <title>Digital Partner Hand - Join / Unirse</title>
     <style>
         * {
             margin: 0;
@@ -39,6 +39,10 @@
             text-align: center;
             color: #666;
             margin-bottom: 30px;
+        }
+        .bilingual {
+            color: #666;
+            font-size: 0.85em;
         }
         .input-group {
             margin-bottom: 20px;
@@ -157,50 +161,50 @@
 <body>
     <div class="container">
         <div class="card">
-            <h1>🚀 Unirse a Digital Partner Hand</h1>
-            <p class="subtitle">¡Comienza a ganar RD$5,000 por cada 5 referidos!</p>
+            <h1>🚀 Join Digital Partner Hand / Unirse</h1>
+            <p class="subtitle bilingual">Start earning RD$5,000 for every 5 referrals! / ¡Comienza a ganar RD$5,000 por cada 5 referidos!</p>
 
             <div id="alertMessage" class="alert"></div>
 
             <div id="referralInfo" class="referral-info">
-                <p>Referido por: <strong id="referrerCode">Cargando...</strong></p>
-                <small style="color: #666;">Tu código de referido se aplicará automáticamente</small>
+                <p>Referred by / Referido por: <strong id="referrerCode">Loading...</strong></p>
+                <small class="bilingual">Your referral code will be automatically applied / Tu código de referido se aplicará automáticamente</small>
             </div>
 
             <div class="input-group">
-                <label>Nombre Completo *</label>
-                <input type="text" id="fullName" placeholder="Ingresa tu nombre completo">
+                <label>Full Name / Nombre Completo *</label>
+                <input type="text" id="fullName" placeholder="Enter your full name / Ingresa tu nombre completo">
             </div>
 
             <div class="input-group">
-                <label>Número de WhatsApp *</label>
+                <label>WhatsApp Number / Número de WhatsApp *</label>
                 <input type="tel" id="whatsappNumber" placeholder="Ej: 8095551234">
-                <small style="color: #666;">Ingresa sin código de país (República Dominicana)</small>
+                <small class="bilingual">Enter without country code (Dominican Republic) / Ingresa sin código de país (República Dominicana)</small>
             </div>
 
             <div class="input-group">
-                <label>Número de Transacción *</label>
-                <input type="text" id="transactionNumber" placeholder="Ingresa tu número de transacción (8+ dígitos)">
-                <small style="color: #666;">De tu depósito de RD$1,250</small>
+                <label>Transaction Number / Número de Transacción *</label>
+                <input type="text" id="transactionNumber" placeholder="Enter your transaction number (8+ digits)">
+                <small class="bilingual">From your RD$1,250 deposit / De tu depósito de RD$1,250</small>
             </div>
 
-            <button class="btn" onclick="submitDeposit()">📤 Enviar Depósito para Aprobación</button>
+            <button class="btn" onclick="submitDeposit()">📤 Submit Deposit for Approval / Enviar Depósito para Aprobación</button>
 
             <div class="loader" id="loadingSpinner"></div>
 
             <div class="benefits">
-                <h3 style="color: #333; margin-bottom: 10px;">Cómo funciona:</h3>
+                <h3 style="color: #333; margin-bottom: 10px;">How it works / Cómo funciona:</h3>
                 <ul>
-                    <li>Envía tu depósito de RD$1,250 para aprobación</li>
-                    <li>Recibe aprobación en 24-48 horas</li>
-                    <li>Comparte tu enlace de referidos con amigos</li>
-                    <li>Gana RD$5,000 por cada 5 referidos</li>
-                    <li>¡Ganancias ilimitadas!</li>
+                    <li>Submit your RD$1,250 deposit for approval / Envía tu depósito de RD$1,250 para aprobación</li>
+                    <li>Get approved within 24-48 hours / Recibe aprobación en 24-48 horas</li>
+                    <li>Share your referral link with friends / Comparte tu enlace de referidos con amigos</li>
+                    <li>Earn RD$5,000 for every 5 referrals / Gana RD$5,000 por cada 5 referidos</li>
+                    <li>Unlimited earnings! / ¡Ganancias ilimitadas!</li>
                 </ul>
             </div>
 
             <p style="text-align: center; margin-top: 20px; color: #666;">
-                <a href="/" style="color: #667eea; text-decoration: none;">← Volver al Inicio</a>
+                <a href="/" style="color: #667eea; text-decoration: none;">← Back to Home / Volver al Inicio</a>
             </p>
         </div>
     </div>
@@ -217,7 +221,7 @@
             const infoEl = document.getElementById('referrerCode');
             
             if (!referralCode) {
-                infoEl.textContent = 'Ninguno (Unión Directa)';
+                infoEl.textContent = 'None (Direct Join) / Ninguno (Unión Directa)';
                 document.getElementById('referralInfo').style.display = 'none';
                 return;
             }
@@ -228,14 +232,14 @@
                 
                 if (data.valid) {
                     infoEl.textContent = referralCode;
-                    showAlert('info', `✅ ¡Bienvenido! Has sido referido por ${referralCode}`);
+                    showAlert('info', `✅ Welcome! You've been referred by ${referralCode} / ¡Bienvenido! Has sido referido por ${referralCode}`);
                 } else {
-                    infoEl.textContent = 'Código Inválido';
-                    showAlert('error', '❌ Enlace de referido inválido. Por favor usa un enlace válido.');
+                    infoEl.textContent = 'Invalid Code / Código Inválido';
+                    showAlert('error', '❌ Invalid referral link. Please use a valid link. / Enlace de referido inválido. Por favor usa un enlace válido.');
                 }
             } catch (error) {
                 console.error('Error checking referral:', error);
-                infoEl.textContent = 'Error al cargar';
+                infoEl.textContent = 'Error loading / Error al cargar';
             }
         }
 
@@ -247,17 +251,17 @@
 
             // Validation
             if (!fullName) {
-                showAlert('error', 'Por favor ingresa tu nombre completo');
+                showAlert('error', 'Please enter your full name / Por favor ingresa tu nombre completo');
                 return;
             }
 
             if (!whatsappNumber || whatsappNumber.length < 10) {
-                showAlert('error', 'Por favor ingresa un número de WhatsApp válido (10 dígitos)');
+                showAlert('error', 'Please enter a valid WhatsApp number (10 digits) / Por favor ingresa un número de WhatsApp válido (10 dígitos)');
                 return;
             }
 
             if (!transactionNumber || transactionNumber.length < 8) {
-                showAlert('error', 'El número de transacción debe tener al menos 8 dígitos');
+                showAlert('error', 'Transaction number must be at least 8 digits / El número de transacción debe tener al menos 8 dígitos');
                 return;
             }
 
@@ -265,7 +269,7 @@
             const btn = document.querySelector('.btn');
             const spinner = document.getElementById('loadingSpinner');
             btn.disabled = true;
-            btn.textContent = 'Enviando...';
+            btn.textContent = 'Submitting... / Enviando...';
             spinner.style.display = 'block';
 
             try {
@@ -283,19 +287,19 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showAlert('success', data.message || '✅ Depósito enviado exitosamente!');
+                    showAlert('success', data.message || '✅ Deposit submitted successfully! / ¡Depósito enviado exitosamente!');
                     document.getElementById('fullName').value = '';
                     document.getElementById('whatsappNumber').value = '';
                     document.getElementById('transactionNumber').value = '';
                 } else {
-                    showAlert('error', '❌ ' + (data.error || 'Error al enviar'));
+                    showAlert('error', '❌ ' + (data.error || 'Submission failed / Error al enviar'));
                 }
             } catch (error) {
                 console.error('Submit deposit error:', error);
-                showAlert('error', '❌ Error al enviar el depósito');
+                showAlert('error', '❌ Error submitting deposit / Error al enviar el depósito');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '📤 Enviar Depósito para Aprobación';
+                btn.textContent = '📤 Submit Deposit for Approval / Enviar Depósito para Aprobación';
                 spinner.style.display = 'none';
             }
         }
