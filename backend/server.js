@@ -6,7 +6,13 @@ const { v4: uuidv4 } = require('uuid');
 const twilio = require('twilio');
 require('dotenv').config();
 const path = require('path');
+require('dotenv').config();
+const path = require('path');
 
+// Fix for sqlite3 on Render
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+
+const app = express();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -16,7 +22,20 @@ app.use(express.json());
 
 // Serve static files from frontend folder
 app.use(express.static(path.join(__dirname, '../frontend')));
+// backend/server.js
+const express = require('express');
+const cors = require('cors');
+const sqlite3 = require('sqlite3').verbose();  // ← Before this line
+const { v4: uuidv4 } = require('uuid');
+const twilio = require('twilio');
+require('dotenv').config();
+const path = require('path');
 
+// 👇 ADD THIS LINE RIGHT HERE (after all the require statements)
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+
+const app = express();
+// ... rest of your code
 // ===================== TWILIO WHATSAPP SETUP =====================
 
 // Initialize Twilio client
