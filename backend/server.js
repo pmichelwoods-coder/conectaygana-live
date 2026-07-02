@@ -3,10 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const { v4: uuidv4 } = require('uuid');
-const twilio = require('twilio');
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
+const axios = require('axios');
 
 // Fix for sqlite3 on Render
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
@@ -26,57 +26,51 @@ app.use(express.json());
 // Serve static files from frontend folder
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// ===================== TWILIO WHATSAPP SETUP =====================
+// ===================== MESSAGGIO WHATSAPP SETUP =====================
 
-// Initialize Twilio client
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-
-// Send WhatsApp message via Twilio
+// Send WhatsApp message via Messaggio
 async function sendWhatsAppMessage(phoneNumber, message) {
   try {
+    // Clean phone number (remove spaces, dashes, etc.)
     let cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
     
+    // Add country code if not present (Dominican Republic = +1)
     if (!cleanNumber.startsWith('1') && cleanNumber.length === 10) {
       cleanNumber = `1${cleanNumber}`;
     }
     
+    // Ensure it starts with +
     if (!cleanNumber.startsWith('+')) {
       cleanNumber = `+${cleanNumber}`;
     }
     
-    const fromNumber = `whatsapp:${process.env.TWILIO_WHATSAPP_SANDBOX || '+14155238886'}`;
-    const toNumber = `whatsapp:${cleanNumber}`;
-    
-    console.log(`📱 Sending WhatsApp to ${toNumber}...`);
+    console.log(`📱 Sending WhatsApp via Messaggio to ${cleanNumber}...`);
     console.log(`📝 Message: ${message}`);
     
-    const twilioMessage = await twilioClient.messages.create({
-      body: message,
-      from: fromNumber,
-      to: toNumber
-    });
+    // Messaggio API endpoint
+    const response = await axios.post(
+      'https://api.messaggio.com/v1/messages',
+      {
+        to: cleanNumber,
+        from: process.env.MESSAGGIO_PHONE_NUMBER || '+35620341674',
+        content: {
+          type: 'text',
+          text: message
+        }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.MESSAGGIO_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
     
-    console.log(`✅ WhatsApp sent! SID: ${twilioMessage.sid}`);
+    console.log(`✅ WhatsApp sent! ID: ${response.data.id}`);
     return true;
     
   } catch (error) {
-    console.error('❌ WhatsApp send error:', error);
-    
-    if (error.code) {
-      console.error(`Twilio Error ${error.code}: ${error.message}`);
-      
-      if (error.code === 21608) {
-        console.error('💡 This number is not authorized. Send the join code first.');
-      } else if (error.code === 21211) {
-        console.error('💡 Invalid phone number format. Use: 8095551234');
-      } else if (error.code === 63005) {
-        console.error('💡 WhatsApp sandbox not properly configured.');
-      }
-    }
-    
+    console.error('❌ WhatsApp send error:', error.response ? error.response.data : error.message);
     return false;
   }
 }
