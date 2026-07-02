@@ -922,6 +922,10 @@ app.get('/join', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/join.html'));
 });
 
+app.get('/terminos', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/terminos.html'));
+});
+
 // ===================== START SERVER =====================
 
 app.listen(PORT, () => {
@@ -929,5 +933,6 @@ app.listen(PORT, () => {
   console.log(`📱 Admin: http://localhost:${PORT}`);
   console.log(`👥 Customer: http://localhost:${PORT}/customer`);
   console.log(`🔗 Join Page: http://localhost:${PORT}/join`);
+  console.log(`📋 Terms: http://localhost:${PORT}/terminos`);
   console.log(`💡 Press Ctrl+C to stop`);
 });
