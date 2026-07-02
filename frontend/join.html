@@ -275,6 +275,20 @@
         .hidden {
             display: none;
         }
+        .terms-link {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .terms-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+        .terms-link a:hover {
+            text-decoration: underline;
+        }
         @media (max-width: 500px) {
             .card {
                 padding: 20px;
@@ -409,9 +423,15 @@
                 <button class="btn" onclick="submitDeposit()" id="submitBtn">📤 Enviar Depósito para Aprobación</button>
 
                 <div class="loader" id="loadingSpinner"></div>
-            </div>
-        </div>
-    </div>
+
+                <!-- Terms and Conditions Link -->
+                <div class="terms-link">
+                    <a href="/terminos" target="_blank">📋 Ver Términos y Condiciones</a>
+                </div>
+
+            </div> <!-- Close content div -->
+        </div> <!-- Close card -->
+    </div> <!-- Close container -->
 
     <script>
         const API_URL = window.location.origin;
@@ -527,6 +547,11 @@
             document.getElementById('fullName').placeholder = t.lblName.replace(' *', '');
             document.getElementById('whatsappNumber').placeholder = t.lblWhatsapp.replace(' *', '');
             document.getElementById('transactionNumber').placeholder = '8+ dígitos';
+
+            // Update terms link text
+            document.querySelector('.terms-link a').textContent = lang === 'es' 
+                ? '📋 Ver Términos y Condiciones' 
+                : '📋 View Terms and Conditions';
         }
 
         // Get referral code from URL
@@ -637,12 +662,8 @@
             setTimeout(() => alertEl.classList.remove('show'), 6000);
         }
 
+        // Initialize
         checkReferralCode();
     </script>
-    <p style="text-align: center; margin-top: 15px; font-size: 0.9em;">
-    <a href="/terminos" target="_blank" style="color: #667eea; text-decoration: none;">
-        📋 Ver Términos y Condiciones
-    </a>
-</p>
 </body>
 </html>
