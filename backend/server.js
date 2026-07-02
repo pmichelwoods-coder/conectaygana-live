@@ -34,7 +34,7 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-// Send WhatsApp message via Twilio (Bilingual)
+// Send WhatsApp message via Twilio
 async function sendWhatsAppMessage(phoneNumber, message) {
   try {
     let cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
@@ -299,12 +299,11 @@ app.get('/api/master-link/:code', async (req, res) => {
   }
 });
 
-// Submit deposit for approval (with better error messages)
+// Submit deposit for approval
 app.post('/api/submit-deposit', async (req, res) => {
   try {
     const { transactionNumber, fullName, whatsappNumber, referralCode } = req.body;
     
-    // Validation
     if (!transactionNumber || transactionNumber.length < 8) {
       return res.status(400).json({ 
         error: '❌ El número de transacción debe tener al menos 8 dígitos.' 
@@ -323,7 +322,7 @@ app.post('/api/submit-deposit', async (req, res) => {
       });
     }
     
-    // Check if already approved (in partners table)
+    // Check if already approved
     db.get(
       'SELECT id FROM partners WHERE transaction_number = ?',
       [transactionNumber],
@@ -367,7 +366,6 @@ app.post('/api/submit-deposit', async (req, res) => {
                   return res.status(500).json({ error: '❌ Error al guardar el depósito. Por favor intenta de nuevo.' });
                 }
                 
-                // Send WhatsApp notification
                 const message = `📝 ¡Gracias por tu depósito!\n\nHemos recibido tu depósito de RD$1,250 y está pendiente de aprobación.\n\n⏳ Por favor espera 24-48 horas para la verificación.\n\nRecibirás una notificación cuando sea aprobado.\n\n¡Gracias por unirte a Digital Partner Hand! 🎉`;
                 
                 await sendWhatsAppMessage(whatsappNumber, message);
@@ -466,7 +464,6 @@ app.post('/api/admin/process-approval', async (req, res) => {
                     return res.status(500).json({ error: 'Server error' });
                   }
                   
-                  // Send welcome message to the new customer
                   const baseUrl = `https://partnerhand-app.onrender.com`;
                   const welcomeMessage = 
                     `🎉 ¡Bienvenido a Digital Partner Hand! / Welcome to Digital Partner Hand!\n\n` +
@@ -483,7 +480,6 @@ app.post('/api/admin/process-approval', async (req, res) => {
                   console.log(`📤 Sending welcome message to ${approval.whatsapp_number}...`);
                   await sendWhatsAppMessage(approval.whatsapp_number, welcomeMessage);
                   
-                  // Handle referral if exists
                   if (approval.referral_code) {
                     db.run(
                       `INSERT INTO referrals (referrer_code, referred_code) VALUES (?, ?)`,
@@ -550,66 +546,88 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const checkStmt = db.prepare('SELECT id FROM partners WHERE transaction_number = ?');
-    const existingTransaction = checkStmt.get(transactionNumber);
+    db.get(
+      'SELECT id FROM partners WHERE transaction_number = ?',
+      [transactionNumber],
+      async (err, existingTransaction) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: 'Server error' });
+        }
 
-    if (existingTransaction) {
-      return res.status(400).json({ error: 'Transaction number already used' });
-    }
+        if (existingTransaction) {
+          return res.status(400).json({ error: 'Transaction number already used' });
+        }
 
-    const customerNumber = await getUniqueCustomerNumber();
+        const customerNumber = await getUniqueCustomerNumber();
 
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 90);
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 90);
 
-    const insertStmt = db.prepare(
-      `INSERT INTO partners 
-       (customer_number, deposit_slip, transaction_number, whatsapp_number, 
-        inviter_code, expiry_date) 
-       VALUES (?, ?, ?, ?, ?, ?)`
-    );
-    insertStmt.run(
-      customerNumber, 
-      depositSlip, 
-      transactionNumber, 
-      whatsappNumber, 
-      inviterCode || null, 
-      expiryDate.toISOString()
-    );
+        db.run(
+          `INSERT INTO partners 
+           (customer_number, deposit_slip, transaction_number, whatsapp_number, 
+            inviter_code, expiry_date) 
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            customerNumber, 
+            depositSlip, 
+            transactionNumber, 
+            whatsappNumber, 
+            inviterCode || null, 
+            expiryDate.toISOString()
+          ],
+          async function(err) {
+            if (err) {
+              console.error(err);
+              return res.status(500).json({ error: 'Server error' });
+            }
 
-    let referralCount = 0;
+            let referralCount = 0;
 
-    if (inviterCode) {
-      const inviterStmt = db.prepare('SELECT * FROM partners WHERE customer_number = ?');
-      const inviterData = inviterStmt.get(inviterCode);
+            if (inviterCode) {
+              db.get(
+                'SELECT * FROM partners WHERE customer_number = ?',
+                [inviterCode],
+                async (err, inviterData) => {
+                  if (inviterData) {
+                    db.run(
+                      `INSERT INTO referrals (referrer_code, referred_code) VALUES (?, ?)`,
+                      [inviterCode, customerNumber],
+                      async (err) => {
+                        if (err) console.error(err);
+                        await checkAndProcessPayouts(inviterCode);
+                        
+                        db.get(
+                          'SELECT COUNT(*) as count FROM referrals WHERE referrer_code = ?',
+                          [inviterCode],
+                          (err, countResult) => {
+                            referralCount = countResult ? countResult.count : 0;
+                          }
+                        );
+                      }
+                    );
+                  }
+                }
+              );
+            }
 
-      if (inviterData) {
-        const refStmt = db.prepare(
-          `INSERT INTO referrals (referrer_code, referred_code) VALUES (?, ?)`
+            await sendWhatsAppMessage(
+              whatsappNumber,
+              `🎯 Welcome to Digital Partner Hand!\n\nYour Customer Number: ${customerNumber}\nValid for: 90 days\n\nShare your referral link to earn RD$5,000 for every 5 referrals!`
+            );
+
+            res.json({
+              success: true,
+              customerNumber,
+              expiryDate: expiryDate.toISOString(),
+              referrals: referralCount,
+              message: 'Registration successful!'
+            });
+          }
         );
-        refStmt.run(inviterCode, customerNumber);
-
-        await checkAndProcessPayouts(inviterCode);
-        
-        const countStmt = db.prepare('SELECT COUNT(*) as count FROM referrals WHERE referrer_code = ?');
-        const countResult = countStmt.get(inviterCode);
-        referralCount = countResult.count;
       }
-    }
-
-    await sendWhatsAppMessage(
-      whatsappNumber,
-      `🎯 Welcome to Digital Partner Hand!\n\nYour Customer Number: ${customerNumber}\nValid for: 90 days\n\nShare your referral link to earn RD$5,000 for every 5 referrals!`
     );
-
-    res.json({
-      success: true,
-      customerNumber,
-      expiryDate: expiryDate.toISOString(),
-      referrals: referralCount,
-      message: 'Registration successful!'
-    });
-
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -625,82 +643,136 @@ app.post('/api/check-status', async (req, res) => {
       return res.status(400).json({ error: 'Customer number required' });
     }
 
-    const partnerStmt = db.prepare('SELECT * FROM partners WHERE customer_number = ?');
-    const partner = partnerStmt.get(customerNumber.toUpperCase());
+    db.get(
+      'SELECT * FROM partners WHERE customer_number = ?',
+      [customerNumber.toUpperCase()],
+      (err, partner) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: 'Server error' });
+        }
 
-    if (!partner) {
-      return res.status(404).json({ error: 'Customer number not found' });
-    }
+        if (!partner) {
+          return res.status(404).json({ error: 'Customer number not found' });
+        }
 
-    const refCountStmt = db.prepare('SELECT COUNT(*) as count FROM referrals WHERE referrer_code = ?');
-    const referralData = refCountStmt.get(partner.customer_number);
+        db.get(
+          'SELECT COUNT(*) as count FROM referrals WHERE referrer_code = ?',
+          [partner.customer_number],
+          (err, referralData) => {
+            if (err) {
+              console.error(err);
+              return res.status(500).json({ error: 'Server error' });
+            }
 
-    const referralsStmt = db.prepare('SELECT referred_code FROM referrals WHERE referrer_code = ?');
-    const referrals = referralsStmt.all(partner.customer_number);
+            db.all(
+              'SELECT referred_code FROM referrals WHERE referrer_code = ?',
+              [partner.customer_number],
+              (err, referrals) => {
+                if (err) {
+                  console.error(err);
+                  return res.status(500).json({ error: 'Server error' });
+                }
 
-    const paymentsStmt = db.prepare('SELECT * FROM payments WHERE customer_number = ? ORDER BY payment_date DESC');
-    const payments = paymentsStmt.all(partner.customer_number);
+                db.all(
+                  'SELECT * FROM payments WHERE customer_number = ? ORDER BY payment_date DESC',
+                  [partner.customer_number],
+                  (err, payments) => {
+                    if (err) {
+                      console.error(err);
+                      return res.status(500).json({ error: 'Server error' });
+                    }
 
-    const completedPayments = payments.filter(p => p.status === 'completed');
-    const pendingPayments = payments.filter(p => p.status === 'pending');
-    
-    const expectedPayouts = Math.floor(referralData.count / 5);
-    const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0);
-    const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
+                    const completedPayments = payments.filter(p => p.status === 'completed');
+                    const pendingPayments = payments.filter(p => p.status === 'pending');
+                    
+                    const expectedPayouts = Math.floor(referralData.count / 5);
+                    const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+                    const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
 
-    const isActive = new Date(partner.expiry_date) > new Date();
-    const daysLeft = Math.ceil((new Date(partner.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
+                    const isActive = new Date(partner.expiry_date) > new Date();
+                    const daysLeft = Math.ceil((new Date(partner.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
 
-    res.json({
-      customerNumber: partner.customer_number,
-      isActive,
-      daysLeft: daysLeft > 0 ? daysLeft : 0,
-      registrationDate: partner.registration_date,
-      expiryDate: partner.expiry_date,
-      referralCount: referralData.count,
-      referralsList: referrals.map(r => r.referred_code),
-      expectedPayouts: expectedPayouts,
-      completedPayments: completedPayments.length,
-      pendingPayments: pendingPayments.length,
-      totalPaid: totalPaid,
-      totalPending: totalPending,
-      whatsappNumber: partner.whatsapp_number,
-      fullName: partner.full_name || 'N/A',
-      paymentHistory: payments.map(p => ({
-        amount: p.amount,
-        payment_date: p.payment_date,
-        status: p.status
-      }))
-    });
-
+                    res.json({
+                      customerNumber: partner.customer_number,
+                      isActive,
+                      daysLeft: daysLeft > 0 ? daysLeft : 0,
+                      registrationDate: partner.registration_date,
+                      expiryDate: partner.expiry_date,
+                      referralCount: referralData.count,
+                      referralsList: referrals.map(r => r.referred_code),
+                      expectedPayouts: expectedPayouts,
+                      completedPayments: completedPayments.length,
+                      pendingPayments: pendingPayments.length,
+                      totalPaid: totalPaid,
+                      totalPending: totalPending,
+                      whatsappNumber: partner.whatsapp_number,
+                      fullName: partner.full_name || 'N/A',
+                      paymentHistory: payments.map(p => ({
+                        amount: p.amount,
+                        payment_date: p.payment_date,
+                        status: p.status
+                      }))
+                    });
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
   } catch (error) {
     console.error('Status check error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// API: Admin stats
+// ===================== ADMIN STATS (FIXED) =====================
+
+// API: Admin stats - FIXED with callback queries
 app.get('/api/admin/stats', async (req, res) => {
   try {
-    const partnersStmt = db.prepare('SELECT COUNT(*) as count FROM partners');
-    const totalPartners = partnersStmt.get();
-
-    const referralsStmt = db.prepare('SELECT COUNT(*) as count FROM referrals');
-    const totalReferrals = referralsStmt.get();
-
-    const pendingPaymentsStmt = db.prepare('SELECT COUNT(*) as count FROM payments WHERE status = "pending"');
-    const pendingPayments = pendingPaymentsStmt.get();
-
-    const pendingApprovalsStmt = db.prepare('SELECT COUNT(*) as count FROM pending_approvals WHERE status = "pending"');
-    const pendingApprovals = pendingApprovalsStmt.get();
-
-    res.json({
-      totalPartners: totalPartners.count,
-      totalReferrals: totalReferrals.count,
-      pendingPayments: pendingPayments.count,
-      pendingApprovals: pendingApprovals.count
+    // Get total partners
+    db.get('SELECT COUNT(*) as count FROM partners', (err, partnersResult) => {
+      if (err) {
+        console.error('Partners count error:', err);
+        return res.status(500).json({ error: 'Server error' });
+      }
+      
+      // Get total referrals
+      db.get('SELECT COUNT(*) as count FROM referrals', (err, referralsResult) => {
+        if (err) {
+          console.error('Referrals count error:', err);
+          return res.status(500).json({ error: 'Server error' });
+        }
+        
+        // Get pending payments
+        db.get('SELECT COUNT(*) as count FROM payments WHERE status = "pending"', (err, paymentsResult) => {
+          if (err) {
+            console.error('Payments count error:', err);
+            return res.status(500).json({ error: 'Server error' });
+          }
+          
+          // Get pending approvals
+          db.get('SELECT COUNT(*) as count FROM pending_approvals WHERE status = "pending"', (err, approvalsResult) => {
+            if (err) {
+              console.error('Approvals count error:', err);
+              return res.status(500).json({ error: 'Server error' });
+            }
+            
+            res.json({
+              totalPartners: partnersResult ? partnersResult.count : 0,
+              totalReferrals: referralsResult ? referralsResult.count : 0,
+              pendingPayments: paymentsResult ? paymentsResult.count : 0,
+              pendingApprovals: approvalsResult ? approvalsResult.count : 0
+            });
+          });
+        });
+      });
     });
   } catch (error) {
+    console.error('Stats error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -708,15 +780,20 @@ app.get('/api/admin/stats', async (req, res) => {
 // API: Get pending payments
 app.get('/api/admin/pending-payments', async (req, res) => {
   try {
-    const stmt = db.prepare(
+    db.all(
       `SELECT p.*, pa.whatsapp_number, pa.full_name 
        FROM payments p 
        JOIN partners pa ON p.customer_number = pa.customer_number 
        WHERE p.status = 'pending' 
-       ORDER BY p.payment_date ASC`
+       ORDER BY p.payment_date ASC`,
+      (err, payments) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: 'Server error' });
+        }
+        res.json(payments || []);
+      }
     );
-    const payments = stmt.all();
-    res.json(payments);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -731,40 +808,57 @@ app.post('/api/admin/process-payment', async (req, res) => {
       return res.status(400).json({ error: 'Customer number required' });
     }
 
-    const paymentStmt = db.prepare(
-      'SELECT * FROM payments WHERE customer_number = ? AND status = "pending" ORDER BY payment_date ASC LIMIT 1'
+    db.get(
+      'SELECT * FROM payments WHERE customer_number = ? AND status = "pending" ORDER BY payment_date ASC LIMIT 1',
+      [customerNumber],
+      (err, payment) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: 'Server error' });
+        }
+
+        if (!payment) {
+          return res.status(404).json({ error: 'No pending payment found' });
+        }
+
+        db.run(
+          `UPDATE payments SET status = 'completed', processed_date = CURRENT_TIMESTAMP WHERE id = ?`,
+          [payment.id],
+          function(err) {
+            if (err) {
+              console.error(err);
+              return res.status(500).json({ error: 'Server error' });
+            }
+
+            db.run(
+              `UPDATE partners SET total_paid = total_paid + ? WHERE customer_number = ?`,
+              [payment.amount, customerNumber],
+              function(err) {
+                if (err) {
+                  console.error(err);
+                  return res.status(500).json({ error: 'Server error' });
+                }
+
+                db.get(
+                  'SELECT whatsapp_number, full_name FROM partners WHERE customer_number = ?',
+                  [customerNumber],
+                  async (err, partner) => {
+                    if (partner) {
+                      await sendWhatsAppMessage(
+                        partner.whatsapp_number,
+                        `💰 Payment Processed!\n\nDear ${partner.full_name || 'Partner'},\n\nYour payment of RD$${payment.amount.toLocaleString()} has been processed successfully.\n\nThank you for being part of Digital Partner Hand! 🎉`
+                      );
+                    }
+
+                    res.json({ success: true, message: 'Payment processed successfully' });
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
     );
-    const payment = paymentStmt.get(customerNumber);
-
-    if (!payment) {
-      return res.status(404).json({ error: 'No pending payment found' });
-    }
-
-    const updateStmt = db.prepare(
-      `UPDATE payments SET status = 'completed', processed_date = CURRENT_TIMESTAMP 
-       WHERE id = ?`
-    );
-    updateStmt.run(payment.id);
-
-    const totalStmt = db.prepare(
-      `UPDATE partners SET total_paid = total_paid + ? WHERE customer_number = ?`
-    );
-    totalStmt.run(payment.amount, customerNumber);
-
-    const partnerStmt = db.prepare(
-      'SELECT whatsapp_number, full_name FROM partners WHERE customer_number = ?'
-    );
-    const partner = partnerStmt.get(customerNumber);
-
-    if (partner) {
-      await sendWhatsAppMessage(
-        partner.whatsapp_number,
-        `💰 Payment Processed!\n\nDear ${partner.full_name || 'Partner'},\n\nYour payment of RD$${payment.amount.toLocaleString()} has been processed successfully.\n\nThank you for being part of Digital Partner Hand! 🎉`
-      );
-    }
-
-    res.json({ success: true, message: 'Payment processed successfully' });
-
   } catch (error) {
     console.error('Process payment error:', error);
     res.status(500).json({ error: 'Server error' });
