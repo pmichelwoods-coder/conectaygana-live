@@ -120,6 +120,7 @@
         }
         .pending-info small {
             color: #666;
+            display: block;
         }
         .pending-actions {
             display: flex;
@@ -238,6 +239,7 @@
         async function loadStats() {
             try {
                 const response = await fetch(`${API_URL}/api/admin/stats`);
+                if (!response.ok) throw new Error('Stats API error');
                 const data = await response.json();
                 document.getElementById('totalPartners').textContent = data.totalPartners || 0;
                 document.getElementById('totalReferrals').textContent = data.totalReferrals || 0;
@@ -245,17 +247,21 @@
                 document.getElementById('pendingPayments').textContent = data.pendingPayments || 0;
             } catch (error) {
                 console.error('Error loading stats:', error);
+                document.getElementById('totalPartners').textContent = 'Error';
             }
         }
 
         // Load pending approvals
         async function loadPendingApprovals() {
+            const container = document.getElementById('pendingApprovalsList');
+            container.innerHTML = '<p style="color: #666;">Loading pending approvals...</p>';
+            
             try {
                 const response = await fetch(`${API_URL}/api/admin/pending-approvals`);
+                if (!response.ok) throw new Error('Approvals API error');
                 const data = await response.json();
-                const container = document.getElementById('pendingApprovalsList');
                 
-                if (data.length === 0) {
+                if (!data || data.length === 0) {
                     container.innerHTML = '<p style="color: #48bb78;">✅ No pending approvals</p>';
                     return;
                 }
@@ -263,11 +269,11 @@
                 container.innerHTML = data.map(item => `
                     <div class="pending-item">
                         <div class="pending-info">
-                            <strong>${item.full_name}</strong>
-                            <small>Transaction: ${item.transaction_number}</small>
-                            <small>WhatsApp: ${item.whatsapp_number}</small>
+                            <strong>${item.full_name || 'Unknown'}</strong>
+                            <small>Transaction: ${item.transaction_number || 'N/A'}</small>
+                            <small>WhatsApp: ${item.whatsapp_number || 'N/A'}</small>
                             <small>Referral Code: ${item.referral_code || 'None'}</small>
-                            <small>Submitted: ${new Date(item.submission_date).toLocaleDateString()}</small>
+                            <small>Submitted: ${item.submission_date ? new Date(item.submission_date).toLocaleDateString() : 'N/A'}</small>
                         </div>
                         <div class="pending-actions">
                             <button class="approve-btn" onclick="processApproval(${item.id}, 'approve')">✅ Approve</button>
@@ -277,42 +283,46 @@
                 `).join('');
             } catch (error) {
                 console.error('Error loading pending approvals:', error);
-                document.getElementById('pendingApprovalsList').innerHTML = '<p style="color: #fc8181;">Error loading approvals</p>';
+                container.innerHTML = '<p style="color: #fc8181;">❌ Error loading approvals. Please refresh.</p>';
             }
         }
 
-     // Load pending payments
-async function loadPendingPayments() {
-    try {
-        const response = await fetch(`${API_URL}/api/admin/pending-payments`);
-        const data = await response.json();
-        const container = document.getElementById('pendingPaymentsList');
-        
-        console.log('Pending payments data:', data); // Debug log
-        
-        if (!data || data.length === 0) {
-            container.innerHTML = '<p style="color: #48bb78;">✅ No pending payments</p>';
-            return;
+        // Load pending payments
+        async function loadPendingPayments() {
+            const container = document.getElementById('pendingPaymentsList');
+            container.innerHTML = '<p style="color: #666;">Loading pending payments...</p>';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/admin/pending-payments`);
+                if (!response.ok) throw new Error('Payments API error');
+                const data = await response.json();
+                
+                console.log('Pending payments data:', data);
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<p style="color: #48bb78;">✅ No pending payments</p>';
+                    return;
+                }
+
+                container.innerHTML = data.map(item => `
+                    <div class="pending-item">
+                        <div class="pending-info">
+                            <strong>${item.full_name || item.customer_number || 'Unknown'}</strong>
+                            <small>Amount: RD$${item.amount ? item.amount.toLocaleString() : '0'}</small>
+                            <small>Customer: ${item.customer_number || 'N/A'}</small>
+                            <small>Date: ${item.payment_date ? new Date(item.payment_date).toLocaleDateString() : 'N/A'}</small>
+                        </div>
+                        <div class="pending-actions">
+                            <button class="approve-btn" onclick="processPayment('${item.customer_number}')">💰 Process Payment</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading pending payments:', error);
+                container.innerHTML = '<p style="color: #fc8181;">❌ Error loading payments. Please refresh.</p>';
+            }
         }
 
-        container.innerHTML = data.map(item => `
-            <div class="pending-item">
-                <div class="pending-info">
-                    <strong>${item.full_name || item.customer_number}</strong>
-                    <small>Amount: RD$${item.amount ? item.amount.toLocaleString() : '0'}</small>
-                    <small>Customer: ${item.customer_number}</small>
-                    <small>Date: ${item.payment_date ? new Date(item.payment_date).toLocaleDateString() : 'N/A'}</small>
-                </div>
-                <div class="pending-actions">
-                    <button class="approve-btn" onclick="processPayment('${item.customer_number}')">💰 Process Payment</button>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading pending payments:', error);
-        document.getElementById('pendingPaymentsList').innerHTML = '<p style="color: #fc8181;">Error loading payments</p>';
-    }
-}
         // Generate master link
         async function generateMasterLink() {
             try {
@@ -358,7 +368,7 @@ async function loadPendingPayments() {
                     alert('✅ Operation successful!');
                     loadDashboard();
                 } else {
-                    alert('❌ Error: ' + data.error);
+                    alert('❌ Error: ' + (data.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error processing approval:', error);
@@ -382,7 +392,7 @@ async function loadPendingPayments() {
                     alert('✅ Payment processed successfully!');
                     loadDashboard();
                 } else {
-                    alert('❌ Error: ' + data.error);
+                    alert('❌ Error: ' + (data.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error processing payment:', error);
@@ -390,11 +400,8 @@ async function loadPendingPayments() {
             }
         }
 
-        // Auto-refresh every 30 seconds
-        setInterval(loadDashboard, 30000);
-
         // Load dashboard on page load
-        loadDashboard();
+        document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>
