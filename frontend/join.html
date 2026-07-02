@@ -56,19 +56,12 @@
         }
         .handshake-image {
             text-align: center;
-            margin: 10px 0 20px 0;
+            margin: 10px 0 15px 0;
         }
         .handshake-image img {
             max-width: 100%;
             height: auto;
             border-radius: 10px;
-        }
-        .handshake-image .placeholder {
-            background: #f0f4ff;
-            padding: 30px;
-            border-radius: 10px;
-            color: #667eea;
-            font-size: 0.9em;
         }
         .card h1 {
             color: #333;
@@ -91,9 +84,6 @@
             font-weight: bold;
             font-size: 1.1em;
             color: #333;
-        }
-        .earn-badge span {
-            color: #1a1a2e;
         }
         .info-box {
             background: #f0f4ff;
@@ -308,8 +298,7 @@
 
             <!-- Handshake Image -->
             <div class="handshake-image">
-                <img src="https://via.placeholder.com/600x150/667eea/white?text=🤝+Handshake+with+RD%24+Note" alt="Handshake with Dominican Republic note" style="width:100%; max-height:150px; object-fit:cover; border-radius:10px;">
-                <div style="font-size:0.8em; color:#666; margin-top:5px;">🤝 Two hands passing a Dominican Republic note</div>
+                <img src="https://www.alamy.com/dominican-republic-money-pesos-banknotes-held-in-hand-close-up-image546736405.html" alt="Dominican Republic pesos in hand" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px;">
             </div>
 
             <div id="content">
@@ -324,31 +313,6 @@
 
                 <div id="alertMessage" class="alert"></div>
 
-                <!-- Bank Details -->
-                <div class="bank-details" id="bankDetails">
-                    <h4 id="bankTitle">🏦 Datos Bancarios / Bank Details</h4>
-                    <div class="row">
-                        <span class="label" id="bankLabel">Banco / Bank:</span>
-                        <span class="value">BanReservas</span>
-                    </div>
-                    <div class="row">
-                        <span class="label" id="accountLabel">Número de Cuenta / Account Number:</span>
-                        <span class="value">001-123456-7</span>
-                    </div>
-                    <div class="row">
-                        <span class="label" id="ownerLabel">Titular / Account Holder:</span>
-                        <span class="value">Digital Partner Hand</span>
-                    </div>
-                    <div class="row">
-                        <span class="label" id="amountLabel">Monto / Amount:</span>
-                        <span class="value">RD$1,250</span>
-                    </div>
-                    <div class="row">
-                        <span class="label" id="conceptLabel">Concepto / Concept:</span>
-                        <span class="value">Inscripción / Registration</span>
-                    </div>
-                </div>
-
                 <!-- Info Box -->
                 <div class="info-box">
                     <p id="infoText">
@@ -361,6 +325,7 @@
                     <p id="referralLabel">Referido por / Referred by: <strong id="referrerCode">Cargando...</strong></p>
                 </div>
 
+                <!-- Customer Form -->
                 <div class="input-group">
                     <label id="lblName">Nombre Completo / Full Name *</label>
                     <input type="text" id="fullName" placeholder="Ingresa tu nombre completo">
@@ -389,10 +354,41 @@
                     </label>
                 </div>
 
-                <button class="btn" onclick="submitDeposit()" id="submitBtn">📤 Enviar Depósito / Submit Deposit</button>
+                <!-- Bank Details -->
+                <div class="bank-details" id="bankDetails">
+                    <h4 id="bankTitle">🏦 Datos Bancarios / Bank Details</h4>
+                    <div class="row">
+                        <span class="label" id="bankLabel">Banco / Bank:</span>
+                        <span class="value">BanReservas</span>
+                    </div>
+                    <div class="row">
+                        <span class="label" id="accountLabel">Número de Cuenta / Account Number:</span>
+                        <span class="value">960 501 0067</span>
+                    </div>
+                    <div class="row">
+                        <span class="label" id="typeLabel">Tipo de Cuenta / Account Type:</span>
+                        <span class="value">Ahorros / Savings</span>
+                    </div>
+                    <div class="row">
+                        <span class="label" id="ownerLabel">Titular / Account Holder:</span>
+                        <span class="value">Paul M. Woods</span>
+                    </div>
+                    <div class="row">
+                        <span class="label" id="amountLabel">Monto / Amount:</span>
+                        <span class="value">RD$1,250</span>
+                    </div>
+                    <div class="row">
+                        <span class="label" id="conceptLabel">Concepto / Concept:</span>
+                        <span class="value">Inscripción / Registration</span>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button class="btn" onclick="submitDeposit()" id="submitBtn">📤 Enviar Depósito para Aprobación / Submit Deposit for Approval</button>
 
                 <div class="loader" id="loadingSpinner"></div>
 
+                <!-- Benefits -->
                 <div class="benefits">
                     <h3 id="benefitsTitle" style="color: #333; margin-bottom: 8px; font-size:1em;">✅ Beneficios / Benefits:</h3>
                     <ul id="benefitsList">
@@ -419,6 +415,7 @@
                 bankTitle: '🏦 Datos Bancarios',
                 bankLabel: 'Banco:',
                 accountLabel: 'Número de Cuenta:',
+                typeLabel: 'Tipo de Cuenta:',
                 ownerLabel: 'Titular:',
                 amountLabel: 'Monto:',
                 conceptLabel: 'Concepto:',
@@ -454,6 +451,7 @@
                 bankTitle: '🏦 Bank Details',
                 bankLabel: 'Bank:',
                 accountLabel: 'Account Number:',
+                typeLabel: 'Account Type:',
                 ownerLabel: 'Account Holder:',
                 amountLabel: 'Amount:',
                 conceptLabel: 'Concept:',
@@ -505,6 +503,7 @@
             document.getElementById('bankTitle').textContent = t.bankTitle;
             document.getElementById('bankLabel').textContent = t.bankLabel;
             document.getElementById('accountLabel').textContent = t.accountLabel;
+            document.getElementById('typeLabel').textContent = t.typeLabel;
             document.getElementById('ownerLabel').textContent = t.ownerLabel;
             document.getElementById('amountLabel').textContent = t.amountLabel;
             document.getElementById('conceptLabel').textContent = t.conceptLabel;
