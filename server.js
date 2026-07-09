@@ -1,3 +1,6 @@
+// FORCE FRESH BUILD - July 9, 2026
+require('dotenv').config();
+...
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -10,10 +13,11 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // ============================================
-// SKIP WHATSAPP FOR LOCAL TESTING
-// Set to false when ready to send real messages
+// SKIP WHATSAPP – read from environment
+// If SKIP_WHATSAPP env var is 'false', send real messages.
+// Default to true (safe for local testing).
 // ============================================
-const SKIP_WHATSAPP = true; // ← Set to false for real WhatsApp messages
+const SKIP_WHATSAPP = process.env.SKIP_WHATSAPP === 'false' ? false : true;
 
 // Middleware
 app.use(cors());
@@ -21,12 +25,13 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // ============================================
-// CONFIGURATION
+// CONFIGURATION (fallbacks to hardcoded values)
 // ============================================
-const MESSAGGIO_LOGIN = 'a88a79e9de5345ea8985910bf91240fc';
-const WHATSAPP_FROM = 'd934r7odajas738cbf30';
-const WHATSAPP_NUMBER = '+18292777135'; // ← UPDATED NUMBER
-const PROJECT_NAME = 'Conecta Y Gana RD 5 Mil';
+const MESSAGGIO_LOGIN = process.env.MESSAGGIO_LOGIN || 'a88a79e9de5345ea8985910bf91240fc';
+const WHATSAPP_FROM   = process.env.WHATSAPP_FROM   || 'd934r7odajas738cbf30';
+const WHATSAPP_NUMBER = process.env.WHATSAPP_NUMBER || '+18292777135';
+const PROJECT_NAME    = process.env.PROJECT_NAME    || 'Conecta Y Gana RD 5 Mil';
+const PROJECT_LOGIN   = process.env.PROJECT_LOGIN   || 'd92kko9jfeec73bck270';
 
 // Database file
 const DB_FILE = path.join(__dirname, 'database.json');
@@ -39,7 +44,16 @@ function readDB() {
         const data = fs.readFileSync(DB_FILE, 'utf8');
         return JSON.parse(data);
     } catch (error) {
-        return { users: [], payments: [], referrals: [], payouts: [], pendingApprovals: [] };
+        // If file doesn't exist or is invalid, create default structure
+        const defaultData = {
+            users: [],
+            payments: [],
+            referrals: [],
+            payouts: [],
+            pendingApprovals: []
+        };
+        writeDB(defaultData);
+        return defaultData;
     }
 }
 
@@ -99,17 +113,15 @@ async function sendWhatsAppMessage(phoneNumber, message) {
 }
 
 // ============================================
-// API ENDPOINTS
+// HEALTH CHECK
 // ============================================
-
-// Health check
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
         service: PROJECT_NAME,
         whatsappNumber: WHATSAPP_NUMBER,
         messaggioConfigured: true,
-        projectLogin: 'd92kko9jfeec73bck270',
+        projectLogin: PROJECT_LOGIN,
         senderCode: WHATSAPP_FROM,
         timestamp: new Date().toISOString()
     });
@@ -165,6 +177,15 @@ app.post('/api/register', async (req, res) => {
         db.users.push(newUser);
         writeDB(db);
 
+        // Increment pendingCustomers for the referee
+        if (refereeCode) {
+            const referee = db.users.find(u => u.referralCode === refereeCode);
+            if (referee && referee.status === 'approved') {
+                referee.pendingCustomers = (referee.pendingCustomers || 0) + 1;
+                writeDB(db);
+            }
+        }
+
         // Send WhatsApp to user (deposit received)
         await sendWhatsAppMessage(phone,
             `📋 Hola ${name}, hemos recibido tu depósito de RD 1,250.\n\n` +
@@ -174,7 +195,7 @@ app.post('/api/register', async (req, res) => {
             `"Tú ayudas, otros crecen, todos ganamos."`
         );
 
-        // Notify referee if exists
+        // Notify referee if exists (about pending client)
         if (refereeCode) {
             const referee = db.users.find(u => u.referralCode === refereeCode);
             if (referee && referee.status === 'approved') {
@@ -231,22 +252,36 @@ app.post('/api/admin/approve-payment', async (req, res) => {
             expiryDate.setDate(expiryDate.getDate() + 90);
             user.expiresAt = expiryDate.toISOString();
 
+            // Decrement pendingCustomers from referee
+            if (user.refereeCode) {
+                const referee = db.users.find(u => u.referralCode === user.refereeCode);
+                if (referee && referee.status === 'approved') {
+                    referee.pendingCustomers = Math.max((referee.pendingCustomers || 0) - 1, 0);
+                    // We'll increment active/total later in the referee notification block
+                }
+            }
+
+            writeDB(db);
+
             await sendWhatsAppMessage(user.phone,
                 `🎉 ¡FELICITACIONES ${user.name}! Tu depósito ha sido APROBADO.\n\n` +
                 `✅ Tu cuenta está activa por 90 días.\n` +
                 `🔑 Tu código de referido es: *${referralCode}*\n\n` +
                 `📱 Comparte tu enlace:\n` +
-                `https://conectaygana.com/ref/${referralCode}\n\n` +
+                `https://connecta-y-gana.onrender.com/?ref=${referralCode}\n\n` +
                 `💰 Gana RD 5,000 por cada 5 clientes.\n` +
                 `📌 No hay límite para ganar.\n\n` +
                 `"Tú ayudas, otros crecen, todos ganamos."`
             );
 
+            // Update referee stats and notify
             if (user.refereeCode) {
                 const referee = db.users.find(u => u.referralCode === user.refereeCode);
                 if (referee && referee.status === 'approved') {
                     referee.totalCustomers += 1;
                     referee.activeCustomers += 1;
+                    // pendingCustomers already decremented above
+                    writeDB(db);
 
                     await sendWhatsAppMessage(referee.phone,
                         `🎉 Hola ${referee.name}, ¡nuevo cliente APROBADO!\n\n` +
@@ -256,20 +291,47 @@ app.post('/api/admin/approve-payment', async (req, res) => {
                         `🏆 Gana RD 5,000 al llegar a 5 clientes.`
                     );
 
-                    if (referee.activeCustomers % 5 === 0) {
-                        const payoutAmount = 5000 * (referee.activeCustomers / 5);
-                        await sendWhatsAppMessage(referee.phone,
-                            `💰 Hola ${referee.name}, ¡FELICITACIONES! Has alcanzado ${referee.activeCustomers} clientes.\n\n` +
-                            `💵 Ganas RD ${payoutAmount.toLocaleString()}.\n` +
-                            `🏦 Por favor, proporciona tus datos bancarios para el pago.\n` +
-                            `⏰ El pago se procesará en 2 días hábiles.`
+                    // Check if referee reached a multiple of 5 active customers
+                    if (referee.activeCustomers > 0 && referee.activeCustomers % 5 === 0) {
+                        const milestone = Math.floor(referee.activeCustomers / 5);
+                        // Avoid duplicate payouts for the same milestone
+                        const existingPayout = db.payouts.find(p =>
+                            p.refereePhone === referee.phone &&
+                            p.milestone === milestone &&
+                            p.status === 'pending'
                         );
+                        if (!existingPayout) {
+                            // Create pending payout
+                            const newPayout = {
+                                id: shortid.generate(),
+                                refereePhone: referee.phone,
+                                refereeName: referee.name,
+                                milestone: milestone,
+                                amount: 5000,
+                                status: 'pending',
+                                createdAt: new Date().toISOString(),
+                                completedAt: null,
+                                transactionNumber: null,
+                                transactionDate: null,
+                                adminNotes: null
+                            };
+                            db.payouts.push(newPayout);
+                            writeDB(db);
+
+                            await sendWhatsAppMessage(referee.phone,
+                                `💰 Hola ${referee.name}, ¡FELICITACIONES! Has alcanzado ${referee.activeCustomers} clientes.\n\n` +
+                                `💵 Tienes un pago pendiente de RD 5,000.\n` +
+                                `⏰ El administrador procesará tu pago en 2 días hábiles.\n\n` +
+                                `🏆 Sigue compartiendo para ganar más.`
+                            );
+                        }
                     }
                 }
             }
 
         } else if (action === 'reject') {
             user.status = 'rejected';
+            writeDB(db);
 
             await sendWhatsAppMessage(user.phone,
                 `❌ Hola ${user.name}, tu depósito ha sido RECHAZADO.\n\n` +
@@ -278,8 +340,6 @@ app.post('/api/admin/approve-payment', async (req, res) => {
                 `🔄 Puedes intentar nuevamente con un nuevo comprobante.`
             );
         }
-
-        writeDB(db);
 
         res.json({
             success: true,
@@ -326,6 +386,210 @@ app.get('/api/user/:phone', (req, res) => {
     } catch (error) {
         console.error('Dashboard error:', error);
         res.status(500).json({ error: 'Error al obtener datos del usuario' });
+    }
+});
+
+// ============================================
+// GET REFERRED USERS FOR A REFEREE
+// ============================================
+app.get('/api/user/:phone/referrals', (req, res) => {
+    try {
+        const { phone } = req.params;
+        const db = readDB();
+
+        const referee = db.users.find(u => u.phone === phone);
+        if (!referee) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const referrals = db.users.filter(u =>
+            u.refereeCode === referee.referralCode && u.phone !== phone
+        );
+
+        const referralList = referrals.map(u => ({
+            name: u.name,
+            phone: u.phone,
+            status: u.status,
+            createdAt: u.createdAt,
+            comprobante: u.comprobante
+        }));
+
+        res.json({
+            count: referralList.length,
+            referrals: referralList
+        });
+    } catch (error) {
+        console.error('Referrals error:', error);
+        res.status(500).json({ error: 'Error al obtener referidos' });
+    }
+});
+
+// ============================================
+// GET PAYOUT STATS FOR A USER
+// ============================================
+app.get('/api/user/:phone/payouts', (req, res) => {
+    try {
+        const { phone } = req.params;
+        const db = readDB();
+
+        const user = db.users.find(u => u.phone === phone);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const userPayouts = db.payouts.filter(p => p.refereePhone === phone);
+
+        const totalPaid = userPayouts
+            .filter(p => p.status === 'completed')
+            .reduce((sum, p) => sum + p.amount, 0);
+
+        const nextMilestone = Math.floor((user.activeCustomers || 0) / 5);
+        const paidMilestones = userPayouts
+            .filter(p => p.status === 'completed')
+            .map(p => p.milestone);
+
+        const pendingMilestones = [];
+        for (let i = 1; i <= nextMilestone; i++) {
+            if (!paidMilestones.includes(i)) {
+                pendingMilestones.push(i);
+            }
+        }
+
+        res.json({
+            totalPaid: totalPaid,
+            payouts: userPayouts,
+            pendingMilestones: pendingMilestones,
+            nextPayoutAmount: pendingMilestones.length > 0 ? 5000 * pendingMilestones.length : 0
+        });
+
+    } catch (error) {
+        console.error('Payout stats error:', error);
+        res.status(500).json({ error: 'Error al obtener estadísticas de pago' });
+    }
+});
+
+// ============================================
+// ADMIN: CREATE PAYOUT (manual trigger)
+// ============================================
+app.post('/api/admin/create-payout', async (req, res) => {
+    try {
+        const { refereePhone, milestone } = req.body;
+
+        const db = readDB();
+        const referee = db.users.find(u => u.phone === refereePhone);
+        if (!referee) {
+            return res.status(404).json({ error: 'Referido no encontrado' });
+        }
+
+        const existing = db.payouts.find(p =>
+            p.refereePhone === refereePhone &&
+            p.milestone === milestone &&
+            p.status === 'pending'
+        );
+        if (existing) {
+            return res.status(400).json({ error: 'Ya existe un pago pendiente para este hito' });
+        }
+
+        const newPayout = {
+            id: shortid.generate(),
+            refereePhone: refereePhone,
+            refereeName: referee.name,
+            milestone: milestone,
+            amount: 5000,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            completedAt: null,
+            transactionNumber: null,
+            transactionDate: null,
+            adminNotes: null
+        };
+
+        db.payouts.push(newPayout);
+        writeDB(db);
+
+        res.json({
+            success: true,
+            message: 'Pago creado exitosamente',
+            payout: newPayout
+        });
+
+    } catch (error) {
+        console.error('Create payout error:', error);
+        res.status(500).json({ error: 'Error al crear el pago' });
+    }
+});
+
+// ============================================
+// ADMIN: COMPLETE PAYOUT
+// ============================================
+app.post('/api/admin/complete-payout', async (req, res) => {
+    try {
+        const { payoutId, transactionNumber, transactionDate } = req.body;
+
+        if (!payoutId || !transactionNumber || !transactionDate) {
+            return res.status(400).json({ error: 'Todos los campos son requeridos' });
+        }
+
+        const db = readDB();
+        const payoutIndex = db.payouts.findIndex(p => p.id === payoutId);
+
+        if (payoutIndex === -1) {
+            return res.status(404).json({ error: 'Pago no encontrado' });
+        }
+
+        const payout = db.payouts[payoutIndex];
+
+        // Update payout status
+        payout.status = 'completed';
+        payout.completedAt = new Date().toISOString();
+        payout.transactionNumber = transactionNumber;
+        payout.transactionDate = transactionDate;
+
+        // Update user's total paid
+        const referee = db.users.find(u => u.phone === payout.refereePhone);
+        if (referee) {
+            referee.totalPaid = (referee.totalPaid || 0) + payout.amount;
+        }
+
+        writeDB(db);
+
+        // Send WhatsApp message to the payee (referee)
+        await sendWhatsAppMessage(payout.refereePhone,
+            `💰 ¡FELICITACIONES ${referee ? referee.name : ''}! Tu pago ha sido COMPLETADO.\n\n` +
+            `💵 Monto: RD ${payout.amount.toLocaleString()}\n` +
+            `📋 Transacción: ${transactionNumber}\n` +
+            `📅 Fecha: ${new Date(transactionDate).toLocaleDateString()}\n\n` +
+            `✅ Has alcanzado ${payout.milestone * 5} clientes.\n` +
+            `🏆 Sigue compartiendo para ganar más.\n\n` +
+            `"Tú ayudas, otros crecen, todos ganamos."`
+        );
+
+        res.json({
+            success: true,
+            message: 'Pago completado exitosamente',
+            payout: payout
+        });
+
+    } catch (error) {
+        console.error('Complete payout error:', error);
+        res.status(500).json({ error: 'Error al completar el pago' });
+    }
+});
+
+// ============================================
+// ADMIN: GET PENDING PAYOUTS
+// ============================================
+app.get('/api/admin/pending-payouts', (req, res) => {
+    try {
+        const db = readDB();
+        const pending = db.payouts.filter(p => p.status === 'pending');
+        res.json({
+            count: pending.length,
+            payouts: pending
+        });
+    } catch (error) {
+        console.error('Pending payouts error:', error);
+        res.status(500).json({ error: 'Error al obtener pagos pendientes' });
     }
 });
 
@@ -381,7 +645,7 @@ app.get('/api/admin/pending', (req, res) => {
         });
     } catch (error) {
         console.error('Pending approvals error:', error);
-        res.status(500).json({ error: 'Error al obtener aprobaciones pendientes' });
+        res.status(500).json({ error: 'Error al obtener aprobaciones pendientes', details: error.message });
     }
 });
 
@@ -397,12 +661,12 @@ app.get('/api/admin/users', (req, res) => {
         });
     } catch (error) {
         console.error('Users list error:', error);
-        res.status(500).json({ error: 'Error al obtener lista de usuarios' });
+        res.status(500).json({ error: 'Error al obtener lista de usuarios', details: error.message });
     }
 });
 
 // ============================================
-// EXPIRY CHECK
+// EXPIRY CHECK (runs every 6 hours)
 // ============================================
 async function checkExpiringUsers() {
     const db = readDB();
@@ -441,7 +705,7 @@ app.get('/ref/:code', (req, res) => {
 });
 
 // ============================================
-// SERVE PAGES
+// SERVE STATIC PAGES
 // ============================================
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -467,7 +731,7 @@ app.listen(PORT, () => {
     console.log(`🚀 ${PROJECT_NAME} API`);
     console.log(`📱 WhatsApp: ${WHATSAPP_NUMBER}`);
     console.log(`🔑 Sender Code: ${WHATSAPP_FROM}`);
-    console.log(`🔗 Project Login: d92kko9jfeec73bck270`);
+    console.log(`🔗 Project Login: ${PROJECT_LOGIN}`);
     console.log('========================================');
     console.log('✅ ALL CREDENTIALS CONFIGURED!');
     console.log('========================================');
@@ -475,17 +739,20 @@ app.listen(PORT, () => {
     console.log(`   • POST /api/register                  → Register with payment`);
     console.log(`   • POST /api/admin/approve-payment    → Approve/Reject payment`);
     console.log(`   • GET  /api/user/:phone              → User dashboard data`);
+    console.log(`   • GET  /api/user/:phone/referrals    → User's referrals list`);
+    console.log(`   • GET  /api/user/:phone/payouts      → User's payout history & pending`);
     console.log(`   • POST /api/user/update-banking      → Update banking details`);
     console.log(`   • GET  /api/admin/pending            → Get pending approvals`);
     console.log(`   • GET  /api/admin/users              → Get all users`);
+    console.log(`   • GET  /api/admin/pending-payouts    → Get pending payouts`);
+    console.log(`   • POST /api/admin/create-payout      → Create a payout manually`);
+    console.log(`   • POST /api/admin/complete-payout    → Complete a payout (with trans. info)`);
     console.log(`   • GET  /                             → Signup page`);
     console.log(`   • GET  /dashboard                    → User dashboard`);
     console.log(`   • GET  /admin                        → Admin panel`);
     console.log('========================================');
-    console.log('🧪 SKIP_WHATSAPP is ENABLED (messages will be logged, not sent)');
-    console.log('   Set SKIP_WHATSAPP = false in server.js to send real WhatsApp');
+    console.log(`🧪 SKIP_WHATSAPP is ${SKIP_WHATSAPP ? 'ENABLED' : 'DISABLED'} (messages will ${SKIP_WHATSAPP ? 'be logged, not sent' : 'be sent for real'})`);
     console.log('========================================');
 });
 
-module.exports = app;// Force fresh build 
-// Force rebuild 
+module.exports = app;
