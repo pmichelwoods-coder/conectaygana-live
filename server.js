@@ -96,6 +96,27 @@ async function sendWhatsAppMessage(phoneNumber, message) {
 }
 
 // ============================================
+// SEND WHATSAPP DIRECT API ENDPOINT
+// ============================================
+app.post('/api/send-whatsapp', async (req, res) => {
+    try {
+        const { phoneNumber, message } = req.body;
+        if (!phoneNumber || !message) {
+            return res.status(400).json({ error: 'Número y mensaje requeridos' });
+        }
+        const result = await sendWhatsAppMessage(phoneNumber, message);
+        if (result.success) {
+            res.json({ success: true, message: 'Mensaje enviado' });
+        } else {
+            res.status(500).json({ error: result.error || 'Error al enviar' });
+        }
+    } catch (error) {
+        console.error('Send error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================
 // HEALTH CHECK
 // ============================================
 app.get('/api/health', (req, res) => {
@@ -612,6 +633,23 @@ app.get('/terms', (req, res) => {
 });
 
 // ============================================
+// SEND WHATSAPP TEST ENDPOINT (for testing)
+// ============================================
+app.post('/api/send-test', async (req, res) => {
+    try {
+        const { phone, message } = req.body;
+        if (!phone || !message) {
+            return res.status(400).json({ error: 'Phone and message required' });
+        }
+        const result = await sendWhatsAppMessage(phone, message);
+        res.json(result);
+    } catch (error) {
+        console.error('Test send error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================
 // START SERVER
 // ============================================
 app.listen(PORT, () => {
@@ -635,6 +673,8 @@ app.listen(PORT, () => {
     console.log(`   • GET  /api/admin/pending-payouts    → Get pending payouts`);
     console.log(`   • POST /api/admin/create-payout      → Create a payout manually`);
     console.log(`   • POST /api/admin/complete-payout    → Complete a payout (with trans. info)`);
+    console.log(`   • POST /api/send-whatsapp            → Send WhatsApp message directly`);
+    console.log(`   • POST /api/send-test                → Test WhatsApp sending`);
     console.log(`   • GET  /                             → Signup page`);
     console.log(`   • GET  /dashboard                    → User dashboard`);
     console.log(`   • GET  /admin                        → Admin panel`);
