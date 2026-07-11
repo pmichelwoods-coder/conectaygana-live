@@ -24,12 +24,12 @@ app.use(express.static('public'));
 // CONFIGURATION
 // ============================================
 const MESSAGGIO_LOGIN = process.env.MESSAGGIO_LOGIN || 'a88a79e9de5345ea8985910bf91240fc';
-const WHATSAPP_FROM   = process.env.WHATSAPP_FROM   || 'd934r7odajas738cbf30';
-const WHATSAPP_NUMBER = process.env.WHATSAPP_NUMBER || '+18292777135';
+const WHATSAPP_FROM   = process.env.WHATSAPP_FROM   || 'd98iug0dajas738cc7t0';
+const WHATSAPP_NUMBER = process.env.WHATSAPP_NUMBER || '+1849 592 8239';
 const PROJECT_NAME    = process.env.PROJECT_NAME    || 'Conecta Y Gana RD 5 Mil';
 const PROJECT_LOGIN   = process.env.PROJECT_LOGIN   || 'd92kko9jfeec73bck270';
 
-const DB_FILE = path.join(__dirname, 'database.json');
+const DB_FILE = path.join('/opt/render/project/src/data', 'database.json');
 
 // ============================================
 // DATABASE HELPERS
