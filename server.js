@@ -35,10 +35,15 @@ const DB_FILE = path.join('/opt/render/project/src/data', 'database.json');
 // DATABASE HELPERS
 // ============================================
 function readDB() {
+    const dataDir = path.dirname(DB_FILE);
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
     try {
         const data = fs.readFileSync(DB_FILE, 'utf8');
         return JSON.parse(data);
     } catch (error) {
+        // If file doesn't exist or is invalid, create default
         const defaultData = { users: [], payments: [], referrals: [], payouts: [], pendingApprovals: [] };
         writeDB(defaultData);
         return defaultData;
@@ -46,6 +51,10 @@ function readDB() {
 }
 
 function writeDB(data) {
+    const dataDir = path.dirname(DB_FILE);
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 }
 
