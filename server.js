@@ -1,4 +1,4 @@
-// FORCE FRESH BUILD - July 9, 2026
+// FORCE FRESH BUILD - July 11, 2026
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -21,18 +21,19 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // ============================================
-// CONFIGURATION
+// CONFIGURATION (with environment overrides)
 // ============================================
 const MESSAGGIO_LOGIN = process.env.MESSAGGIO_LOGIN || 'a88a79e9de5345ea8985910bf91240fc';
 const WHATSAPP_FROM   = process.env.WHATSAPP_FROM   || 'd98iug0dajas738cc7t0';
-const WHATSAPP_NUMBER = process.env.WHATSAPP_NUMBER || '+1849 592 8239';
+const WHATSAPP_NUMBER = process.env.WHATSAPP_NUMBER || '+18495928239';
 const PROJECT_NAME    = process.env.PROJECT_NAME    || 'Conecta Y Gana RD 5 Mil';
 const PROJECT_LOGIN   = process.env.PROJECT_LOGIN   || 'd92kko9jfeec73bck270';
 
+// Database file path (persistent disk on Render)
 const DB_FILE = path.join('/opt/render/project/src/data', 'database.json');
 
 // ============================================
-// DATABASE HELPERS
+// DATABASE HELPERS (with directory creation)
 // ============================================
 function readDB() {
     const dataDir = path.dirname(DB_FILE);
@@ -105,6 +106,21 @@ async function sendWhatsAppMessage(phoneNumber, message) {
 }
 
 // ============================================
+// HEALTH CHECK
+// ============================================
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'OK',
+        service: PROJECT_NAME,
+        whatsappNumber: WHATSAPP_NUMBER,
+        messaggioConfigured: true,
+        projectLogin: PROJECT_LOGIN,
+        senderCode: WHATSAPP_FROM,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// ============================================
 // SEND WHATSAPP DIRECT API ENDPOINT
 // ============================================
 app.post('/api/send-whatsapp', async (req, res) => {
@@ -126,18 +142,20 @@ app.post('/api/send-whatsapp', async (req, res) => {
 });
 
 // ============================================
-// HEALTH CHECK
+// TEST ENDPOINT
 // ============================================
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'OK',
-        service: PROJECT_NAME,
-        whatsappNumber: WHATSAPP_NUMBER,
-        messaggioConfigured: true,
-        projectLogin: PROJECT_LOGIN,
-        senderCode: WHATSAPP_FROM,
-        timestamp: new Date().toISOString()
-    });
+app.post('/api/send-test', async (req, res) => {
+    try {
+        const { phone, message } = req.body;
+        if (!phone || !message) {
+            return res.status(400).json({ error: 'Phone and message required' });
+        }
+        const result = await sendWhatsAppMessage(phone, message);
+        res.json(result);
+    } catch (error) {
+        console.error('Test send error:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // ============================================
@@ -223,7 +241,7 @@ app.post('/api/register', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Registration error:', error);
+        console.error('❌ Registration error:', error);
         res.status(500).json({ error: 'Error al registrar usuario' });
     }
 });
@@ -266,7 +284,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
                 `✅ Tu cuenta está activa por 90 días.\n` +
                 `🔑 Tu código de referido es: *${referralCode}*\n\n` +
                 `📱 Comparte tu enlace:\n` +
-                `https://connecta-y-gana.onrender.com/?ref=${referralCode}\n\n` +
+                `https://conectaygana.onrender.com/?ref=${referralCode}\n\n` +
                 `💰 Gana RD 5,000 por cada 5 clientes.\n` +
                 `📌 No hay límite para ganar.\n\n` +
                 `"Tú ayudas, otros crecen, todos ganamos."`
@@ -435,7 +453,7 @@ app.get('/api/user/:phone/payouts', (req, res) => {
 });
 
 // ============================================
-// ADMIN: CREATE PAYOUT
+// ADMIN: CREATE PAYOUT (manual)
 // ============================================
 app.post('/api/admin/create-payout', async (req, res) => {
     try {
@@ -529,6 +547,19 @@ app.get('/api/admin/pending-payouts', (req, res) => {
 });
 
 // ============================================
+// ADMIN: GET ALL PAYOUTS (including completed)
+// ============================================
+app.get('/api/admin/all-payouts', (req, res) => {
+    try {
+        const db = readDB();
+        res.json({ count: db.payouts.length, payouts: db.payouts });
+    } catch (error) {
+        console.error('All payouts error:', error);
+        res.status(500).json({ error: 'Error al obtener todos los pagos' });
+    }
+});
+
+// ============================================
 // UPDATE BANKING DETAILS
 // ============================================
 app.post('/api/user/update-banking', async (req, res) => {
@@ -585,7 +616,7 @@ app.get('/api/admin/users', (req, res) => {
 });
 
 // ============================================
-// EXPIRY CHECK
+// EXPIRY CHECK (runs every 6 hours)
 // ============================================
 async function checkExpiringUsers() {
     const db = readDB();
@@ -642,23 +673,6 @@ app.get('/terms', (req, res) => {
 });
 
 // ============================================
-// SEND WHATSAPP TEST ENDPOINT (for testing)
-// ============================================
-app.post('/api/send-test', async (req, res) => {
-    try {
-        const { phone, message } = req.body;
-        if (!phone || !message) {
-            return res.status(400).json({ error: 'Phone and message required' });
-        }
-        const result = await sendWhatsAppMessage(phone, message);
-        res.json(result);
-    } catch (error) {
-        console.error('Test send error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ============================================
 // START SERVER
 // ============================================
 app.listen(PORT, () => {
@@ -680,6 +694,7 @@ app.listen(PORT, () => {
     console.log(`   • GET  /api/admin/pending            → Get pending approvals`);
     console.log(`   • GET  /api/admin/users              → Get all users`);
     console.log(`   • GET  /api/admin/pending-payouts    → Get pending payouts`);
+    console.log(`   • GET  /api/admin/all-payouts        → Get all payouts (incl. completed)`);
     console.log(`   • POST /api/admin/create-payout      → Create a payout manually`);
     console.log(`   • POST /api/admin/complete-payout    → Complete a payout (with trans. info)`);
     console.log(`   • POST /api/send-whatsapp            → Send WhatsApp message directly`);
@@ -692,4 +707,4 @@ app.listen(PORT, () => {
     console.log('========================================');
 });
 
-module.exports = app;// Fix: Remove space in phone number 
+module.exports = app;
