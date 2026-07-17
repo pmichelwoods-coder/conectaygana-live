@@ -366,12 +366,15 @@
             return `<span class="status-badge ${map[status] || ''}">${status.toUpperCase()}</span>`;
         }
 
-        function formatDate(dateStr) {
-            if (!dateStr) return '-';
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('es-DO');
-        }
-
+       function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('es-DO');
+    } catch (e) {
+        return dateStr;
+    }
+}
         function getPhone() {
             return localStorage.getItem(PHONE_KEY) || '';
         }
