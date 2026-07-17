@@ -8,12 +8,17 @@
         body { font-family: Arial; background: #e8f0fe; padding: 20px; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 16px; }
         h1 { color: #0a2a44; }
+        .banner { background: #fff4e0; padding: 12px; border-radius: 12px; text-align: center; margin-bottom:20px; }
         .info { background: #f0f6fe; padding: 15px; border-radius: 12px; margin: 20px 0; }
-        table { width: 100%; border-collapse: collapse; }
+        .info p { margin: 5px 0; }
+        .stats { display: flex; gap: 20px; flex-wrap: wrap; margin: 20px 0; }
+        .stat-card { background: #f8faff; border: 2px solid #4a7aaa; border-radius: 12px; padding: 15px; flex:1; text-align:center; min-width:120px; }
+        .stat-number { font-size: 28px; font-weight: 700; color: #0a2a44; }
+        .stat-label { font-size: 13px; color: #2a5a8c; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; margin-top:10px; }
         th { background: #0a2a44; color: white; padding: 10px; text-align: left; }
         td { padding: 10px; border-bottom: 1px solid #ddd; }
-        .banner { background: #fff4e0; padding: 12px; border-radius: 12px; text-align: center; }
-        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top:1px solid #ddd; padding-top:15px; }
     </style>
 </head>
 <body>
@@ -25,33 +30,29 @@
     </div>
 
     <div class="info">
-        <p><strong>Nombre:</strong> <span id="userName">Cargando...</span></p>
-        <p><strong>Teléfono:</strong> <span id="userPhone">8495928239</span></p>
-        <p><strong>Estado:</strong> <span id="userStatus">Cargando...</span></p>
-        <p><strong>Código de referido:</strong> <span id="userReferralCode">Cargando...</span></p>
+        <p><strong>👤 Nombre:</strong> <span id="userName">Cargando...</span></p>
+        <p><strong>📱 Teléfono:</strong> <span id="userPhone">Cargando...</span></p>
+        <p><strong>📋 Estado:</strong> <span id="userStatus">Cargando...</span></p>
+        <p><strong>🔑 Código de referido:</strong> <span id="userReferralCode">Cargando...</span></p>
     </div>
 
-    <div class="stats" style="display:flex; gap:20px; flex-wrap:wrap; margin:20px 0;">
-        <div style="background:#f8faff; border:2px solid #4a7aaa; border-radius:12px; padding:15px; flex:1; text-align:center;">
-            <div style="font-size:28px; font-weight:700;" id="totalCustomers">0</div>
-            <div style="font-size:13px;">📊 Total Clientes</div>
-        </div>
-        <div style="background:#f8faff; border:2px solid #4a7aaa; border-radius:12px; padding:15px; flex:1; text-align:center;">
-            <div style="font-size:28px; font-weight:700;" id="activeCustomers">0</div>
-            <div style="font-size:13px;">✅ Activos</div>
-        </div>
-        <div style="background:#f8faff; border:2px solid #4a7aaa; border-radius:12px; padding:15px; flex:1; text-align:center;">
-            <div style="font-size:28px; font-weight:700;" id="pendingCustomers">0</div>
-            <div style="font-size:13px;">⏳ Pendientes</div>
-        </div>
-        <div style="background:#f8faff; border:2px solid #4a7aaa; border-radius:12px; padding:15px; flex:1; text-align:center;">
-            <div style="font-size:28px; font-weight:700;" id="totalPaid">RD$0</div>
-            <div style="font-size:13px;">💰 Total Pagado</div>
+    <div class="stats">
+        <div class="stat-card"><div class="stat-number" id="totalCustomers">0</div><div class="stat-label">📊 Total Clientes</div></div>
+        <div class="stat-card"><div class="stat-number" id="activeCustomers">0</div><div class="stat-label">✅ Activos</div></div>
+        <div class="stat-card"><div class="stat-number" id="pendingCustomers">0</div><div class="stat-label">⏳ Pendientes</div></div>
+        <div class="stat-card"><div class="stat-number" id="totalPaid">RD$0</div><div class="stat-label">💰 Total Pagado</div></div>
+    </div>
+
+    <div id="referralSection" style="display:none; background:#e8f0fe; padding:15px; border-radius:12px; border:1px solid #4a7aaa; margin:20px 0;">
+        <h3>🔗 Tu Enlace de Referido</h3>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="referralLinkInput" style="flex:1; padding:10px; border:1px solid #b0c8e0; border-radius:6px;" readonly>
+            <button onclick="copyLink()" style="background:#0f3460; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">📋 Copiar</button>
         </div>
     </div>
 
-    <div style="margin-top:30px;">
-        <h3>💳 Pagos Pendientes</h3>
+    <h3>💳 Pagos Pendientes</h3>
+    <div style="overflow-x:auto;">
         <table>
             <thead><tr><th>Nombre</th><th>WhatsApp</th><th>Código Ref.</th><th>Banco</th><th>Nº Cuenta</th><th>Tipo</th><th>Comprobante</th><th>Fecha Pago</th><th>Monto</th><th>Pagado</th></tr></thead>
             <tbody id="payoutsBody"><tr><td colspan="10" style="text-align:center; color:#888; padding:20px;">No hay pagos pendientes.</td></tr></tbody>
@@ -66,15 +67,75 @@
 </div>
 
 <script>
-    // Minimal script to display static content (no API calls yet)
-    document.getElementById('userName').textContent = 'Paul Woods';
-    document.getElementById('userPhone').textContent = '8495928239';
-    document.getElementById('userStatus').textContent = '✅ Aprobado';
-    document.getElementById('userReferralCode').textContent = 'SOEGJJ9Z';
-    document.getElementById('totalCustomers').textContent = '6';
-    document.getElementById('activeCustomers').textContent = '3';
-    document.getElementById('pendingCustomers').textContent = '0';
-    document.getElementById('totalPaid').textContent = 'RD$0';
+    const phone = '8495928239';
+
+    async function loadData() {
+        try {
+            const res = await fetch(`/api/user/${phone}`);
+            if (!res.ok) {
+                if (res.status === 404) {
+                    document.getElementById('userName').textContent = 'Usuario no encontrado';
+                    return;
+                }
+                throw new Error('Error al cargar');
+            }
+            const user = await res.json();
+
+            document.getElementById('userName').textContent = user.name || '-';
+            document.getElementById('userPhone').textContent = user.phone || '-';
+            const statusMap = { 'pending': '⏳ Pendiente', 'approved': '✅ Aprobado', 'expired': '⏰ Expirado', 'rejected': '❌ Rechazado' };
+            document.getElementById('userStatus').textContent = statusMap[user.status] || user.status;
+            document.getElementById('userReferralCode').textContent = user.referralCode || 'No asignado';
+
+            document.getElementById('totalCustomers').textContent = user.totalCustomers || 0;
+            document.getElementById('activeCustomers').textContent = user.activeCustomers || 0;
+            document.getElementById('pendingCustomers').textContent = user.pendingCustomers || 0;
+            document.getElementById('totalPaid').textContent = 'RD$' + (user.totalPaid || 0);
+
+            if (user.status === 'approved' && user.referralCode) {
+                document.getElementById('referralSection').style.display = 'block';
+                document.getElementById('referralLinkInput').value = window.location.origin + '/?ref=' + user.referralCode;
+            }
+
+            // Load payouts
+            const payoutRes = await fetch(`/api/user/${phone}/payouts`);
+            const payoutData = await payoutRes.json();
+            const pending = payoutData.payouts.filter(p => p.status === 'pending');
+            const tbody = document.getElementById('payoutsBody');
+            if (pending.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888; padding:20px;">No hay pagos pendientes.</td></tr>';
+            } else {
+                let html = '';
+                pending.forEach(p => {
+                    html += `<tr>
+                        <td>${user.name}</td>
+                        <td>${phone}</td>
+                        <td>${user.referralCode || '-'}</td>
+                        <td><select><option>Banreserva</option><option>Banco Popular</option><option>BHD León</option></select></td>
+                        <td><input type="text" style="width:100%; padding:4px; border:1px solid #b0c8e0; border-radius:4px;"></td>
+                        <td><select><option>Ahorros</option><option>Corriente</option></select></td>
+                        <td><input type="text" style="width:100%; padding:4px; border:1px solid #b0c8e0; border-radius:4px;" placeholder="Comprobante"></td>
+                        <td><input type="date" style="width:100%; padding:4px; border:1px solid #b0c8e0; border-radius:4px;"></td>
+                        <td>RD$ ${p.amount}</td>
+                        <td style="text-align:center;"><input type="checkbox"></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            }
+        } catch (err) {
+            console.error(err);
+            document.getElementById('userName').textContent = 'Error al cargar';
+        }
+    }
+
+    function copyLink() {
+        const input = document.getElementById('referralLinkInput');
+        input.select();
+        document.execCommand('copy');
+        alert('✅ Enlace copiado al portapapeles');
+    }
+
+    loadData();
 </script>
 </body>
 </html>
