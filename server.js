@@ -1,4 +1,4 @@
-// server.js – Vonage with test-number lock (full)
+// server.js – Telegram Integration (Full Version)
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -10,32 +10,21 @@ const shortid = require('shortid');
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
+
 const PORT = process.env.PORT || 5001;
 
 // ============================================
-// SKIP WHATSAPP – read from environment
+// TELEGRAM CONFIG
 // ============================================
-const SKIP_WHATSAPP = process.env.SKIP_WHATSAPP === 'false' ? false : true;
-
-// ============================================
-// TEST NUMBER LOCK – only this number can receive during testing
-// ============================================
-const TEST_PHONE_NUMBER = process.env.TEST_PHONE_NUMBER || '18299251967';
-const ALLOW_ALL_NUMBERS = process.env.ALLOW_ALL_NUMBERS === 'true' ? true : false;
-
-// ============================================
-// VONAGE CONFIG
-// ============================================
-const VONAGE_API_KEY = process.env.VONAGE_API_KEY;
-const VONAGE_API_SECRET = process.env.VONAGE_API_SECRET;
-const VONAGE_FROM_NUMBER = process.env.VONAGE_FROM_NUMBER || '14157386102'; // Sandbox
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const DEFAULT_CHAT_ID = process.env.TELEGRAM_DEFAULT_CHAT_ID; // Admin chat ID for testing
+const SKIP_TELEGRAM = process.env.SKIP_TELEGRAM === 'true' ? true : false;
 
 // ============================================
 // OLD CONFIG (kept for compatibility)
 // ============================================
 const PROJECT_NAME = process.env.PROJECT_NAME || 'Conecta Y Gana RD 5 Mil';
-const PROJECT_LOGIN = process.env.PROJECT_LOGIN || 'd92kko9jfeec73bck270';
-
 const DB_FILE = path.join(__dirname, 'database.json');
 
 // ============================================
@@ -76,51 +65,64 @@ function isCodeUnique(code, db) {
 }
 
 // ============================================
-// WHATSAPP SENDER (Vonage) with test lock
+// TELEGRAM SENDER
 // ============================================
-async function sendWhatsAppMessage(phoneNumber, message) {
-    if (SKIP_WHATSAPP) {
-        console.log('📨 [SKIP] WhatsApp message to', phoneNumber, ':', message);
+async function sendTelegramMessage(chatId, text) {
+    if (SKIP_TELEGRAM) {
+        console.log('📨 [SKIP] Telegram message to', chatId, ':', text);
         return { success: true, skipped: true };
     }
-
-    const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
-    const cleanTest = TEST_PHONE_NUMBER.replace(/[^0-9]/g, '');
-    if (!ALLOW_ALL_NUMBERS && cleanPhone !== cleanTest) {
-        console.warn(`⛔ Blocked: ${phoneNumber} is not the test number (${TEST_PHONE_NUMBER})`);
-        throw new Error('Testing mode: only the test number is allowed.');
+    if (!TELEGRAM_BOT_TOKEN) {
+        console.error('❌ TELEGRAM_BOT_TOKEN is not set');
+        return { success: false, error: 'Bot token missing' };
     }
-
-    const auth = Buffer.from(`${VONAGE_API_KEY}:${VONAGE_API_SECRET}`).toString('base64');
-    const payload = {
-        from: VONAGE_FROM_NUMBER,
-        to: cleanPhone,
-        channel: 'whatsapp',
-        message_type: 'text',
-        text: message,
-    };
+    if (!chatId) {
+        console.error('❌ No chatId provided');
+        return { success: false, error: 'No chatId' };
+    }
 
     try {
-        const response = await fetch('https://messages-sandbox.nexmo.com/v1/messages', {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${auth}`,
-            },
-            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: text,
+                parse_mode: 'HTML'
+            })
         });
-
         const data = await response.json();
-        if (!response.ok) {
-            console.error('❌ Vonage Error:', data);
-            throw new Error(data.title || data.description || 'Vonage send failed');
+        if (!data.ok) {
+            console.error('❌ Telegram Error:', data);
+            throw new Error(data.description || 'Telegram send failed');
         }
-        console.log(`✅ Sent to ${phoneNumber}`, data);
+        console.log(`✅ Telegram sent to ${chatId}`);
         return { success: true, result: data };
     } catch (error) {
-        console.error('WhatsApp send error:', error);
+        console.error('Telegram send error:', error);
         throw error;
     }
+}
+
+// ============================================
+// SEND NOTIFICATION TO USER (by phone)
+// Looks up the user's telegramChatId, or falls back to DEFAULT_CHAT_ID
+// ============================================
+async function sendNotification(phone, message) {
+    const db = readDB();
+    const user = db.users.find(u => u.phone === phone);
+    let chatId = DEFAULT_CHAT_ID;
+
+    if (user && user.telegramChatId) {
+        chatId = user.telegramChatId;
+    } else {
+        console.log(`⚠️ No telegramChatId for ${phone}, sending to admin (${DEFAULT_CHAT_ID})`);
+        // Prefix the message so admin knows who it's for
+        message = `📱 For ${phone}:\n\n${message}`;
+    }
+
+    return await sendTelegramMessage(chatId, message);
 }
 
 // ============================================
@@ -130,37 +132,43 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
         service: PROJECT_NAME,
-        whatsappProvider: 'Vonage',
-        whatsappNumber: VONAGE_FROM_NUMBER,
-        testNumberLock: TEST_PHONE_NUMBER,
-        allNumbersAllowed: ALLOW_ALL_NUMBERS,
+        provider: 'Telegram',
+        botTokenSet: !!TELEGRAM_BOT_TOKEN,
+        defaultChatId: DEFAULT_CHAT_ID,
         timestamp: new Date().toISOString()
     });
 });
 
 // ============================================
-// REGISTER USER
+// ADMIN: UPDATE USER PHONE NUMBER
 // ============================================
-app.post('/api/register', async (req, res) => {
+app.post('/api/admin/update-user', async (req, res) => {
     try {
-        const { phone, name, comprobante, refereeCode } = req.body;
-        const email = req.body.email || `user_${Date.now()}@temp.com`;
-
-        if (!phone || !name || !comprobante) {
-            return res.status(400).json({ error: 'Todos los campos son requeridos' });
-        }
-        if (!/^\d{8,}$/.test(comprobante)) {
-            return res.status(400).json({ error: 'El comprobante debe tener 8 o más dígitos numéricos' });
+        const { userId, phone } = req.body;
+        if (!userId || !phone) {
+            return res.status(400).json({ error: 'userId and phone are required' });
         }
 
         const db = readDB();
-        if (db.users.some(u => u.phone === phone)) {
-            return res.status(400).json({ error: 'Este número ya está registrado' });
-        }
-        if (db.users.some(u => u.comprobante === comprobante)) {
-            return res.status(400).json({ error: 'Este comprobante ya ha sido utilizado' });
+        const user = db.users.find(u => u.id === userId);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
         }
 
+        // Check if phone already exists for another user
+        if (db.users.some(u => u.phone === phone && u.id !== userId)) {
+            return res.status(400).json({ error: 'Este número ya está registrado por otro usuario' });
+        }
+
+        user.phone = phone;
+        writeDB(db);
+
+        res.json({ success: true, message: 'Número actualizado correctamente', user });
+    } catch (error) {
+        console.error('Update user error:', error);
+        res.status(500).json({ error: 'Error al actualizar el usuario' });
+    }
+});
         const newUser = {
             id: shortid.generate(),
             phone,
@@ -170,6 +178,7 @@ app.post('/api/register', async (req, res) => {
             refereeCode: refereeCode || null,
             status: 'pending',
             referralCode: null,
+            telegramChatId: telegramChatId || null, // NEW FIELD
             createdAt: new Date().toISOString(),
             approvedAt: null,
             expiresAt: null,
@@ -192,7 +201,8 @@ app.post('/api/register', async (req, res) => {
             }
         }
 
-        await sendWhatsAppMessage(phone,
+        // Send Telegram notification to the new user
+        await sendNotification(phone,
             `📋 Hola ${name}, hemos recibido tu depósito de RD 1,250.\n\n` +
             `🔍 Tu comprobante #${comprobante} está en revisión.\n` +
             `⏰ El proceso puede tomar hasta 48 horas.\n\n` +
@@ -203,7 +213,7 @@ app.post('/api/register', async (req, res) => {
         if (refereeCode) {
             const referee = db.users.find(u => u.referralCode === refereeCode);
             if (referee && referee.status === 'approved') {
-                await sendWhatsAppMessage(referee.phone,
+                await sendNotification(referee.phone,
                     `👤 Hola ${referee.name}, ¡tienes un nuevo cliente pendiente!\n\n` +
                     `📱 ${name} se ha registrado usando tu enlace.\n` +
                     `📋 Comprobante #${comprobante} en revisión.\n` +
@@ -261,7 +271,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
 
             writeDB(db);
 
-            await sendWhatsAppMessage(user.phone,
+            await sendNotification(user.phone,
                 `🎉 ¡FELICITACIONES ${user.name}! Tu depósito ha sido APROBADO.\n\n` +
                 `✅ Tu cuenta está activa por 90 días.\n` +
                 `🔑 Tu código de referido es: *${referralCode}*\n\n` +
@@ -279,7 +289,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
                     referee.activeCustomers += 1;
                     writeDB(db);
 
-                    await sendWhatsAppMessage(referee.phone,
+                    await sendNotification(referee.phone,
                         `🎉 Hola ${referee.name}, ¡nuevo cliente APROBADO!\n\n` +
                         `👤 ${user.name} ha sido confirmado.\n` +
                         `📊 Ahora tienes ${referee.totalCustomers} clientes totales.\n` +
@@ -311,7 +321,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
                             db.payouts.push(newPayout);
                             writeDB(db);
 
-                            await sendWhatsAppMessage(referee.phone,
+                            await sendNotification(referee.phone,
                                 `💰 Hola ${referee.name}, ¡FELICITACIONES! Has alcanzado ${referee.activeCustomers} clientes.\n\n` +
                                 `💵 Tienes un pago pendiente de RD 5,000.\n` +
                                 `⏰ El administrador procesará tu pago en 2 días hábiles.\n\n` +
@@ -326,7 +336,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
             user.status = 'rejected';
             writeDB(db);
 
-            await sendWhatsAppMessage(user.phone,
+            await sendNotification(user.phone,
                 `❌ Hola ${user.name}, tu depósito ha sido RECHAZADO.\n\n` +
                 `📋 Comprobante #${user.comprobante} no fue aprobado.\n` +
                 `📌 Motivo: El comprobante no coincide con nuestros registros.\n\n` +
@@ -361,6 +371,7 @@ app.get('/api/user/:phone', (req, res) => {
             phone: user.phone,
             status: user.status,
             referralCode: user.referralCode,
+            telegramChatId: user.telegramChatId || null,
             totalCustomers: user.totalCustomers || 0,
             activeCustomers: user.activeCustomers || 0,
             pendingCustomers: user.pendingCustomers || 0,
@@ -374,6 +385,30 @@ app.get('/api/user/:phone', (req, res) => {
     } catch (error) {
         console.error('Dashboard error:', error);
         res.status(500).json({ error: 'Error al obtener datos del usuario' });
+    }
+});
+
+// ============================================
+// UPDATE TELEGRAM CHAT ID (for users to link their account)
+// ============================================
+app.post('/api/user/update-telegram', async (req, res) => {
+    try {
+        const { phone, telegramChatId } = req.body;
+        if (!phone || !telegramChatId) {
+            return res.status(400).json({ error: 'Phone and telegramChatId are required' });
+        }
+
+        const db = readDB();
+        const user = db.users.find(u => u.phone === phone);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        user.telegramChatId = telegramChatId;
+        writeDB(db);
+
+        res.json({ success: true, message: 'Telegram linked successfully' });
+    } catch (error) {
+        console.error('Update telegram error:', error);
+        res.status(500).json({ error: 'Error al actualizar Telegram' });
     }
 });
 
@@ -505,7 +540,7 @@ app.post('/api/admin/complete-payout', async (req, res) => {
 
         writeDB(db);
 
-        await sendWhatsAppMessage(payout.refereePhone,
+        await sendNotification(payout.refereePhone,
             `💰 ¡FELICITACIONES ${referee ? referee.name : ''}! Tu pago ha sido COMPLETADO.\n\n` +
             `💵 Monto: RD ${payout.amount.toLocaleString()}\n` +
             `📋 Transacción: ${transactionNumber}\n` +
@@ -600,7 +635,7 @@ async function checkExpiringUsers() {
         const daysRemaining = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
 
         if (daysRemaining === 1) {
-            await sendWhatsAppMessage(user.phone,
+            await sendNotification(user.phone,
                 `⚠️ Hola ${user.name}, ¡ATENCIÓN! Tu cuenta expira mañana.\n\n` +
                 `📅 Fecha de expiración: ${expiryDate.toLocaleDateString()}\n` +
                 `📊 Tienes ${user.activeCustomers} clientes activos.\n\n` +
@@ -626,35 +661,11 @@ app.get('/', (req, res) => {
 });
 
 app.get('/dashboard', (req, res) => {
-    const filePath = path.join(__dirname, 'public', 'dashboard.html');
-    res.sendFile(filePath, (err) => {
-        if (err) {
-            console.error('❌ Dashboard file missing, sending fallback');
-            res.send(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Dashboard - Conecta Y Gana RD</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f0f2f5; }
-                        h1 { color: #1a73e8; }
-                        .card { background: white; padding: 30px; border-radius: 10px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                    </style>
-                </head>
-                <body>
-                    <div class="card">
-                        <h1>📊 Conecta Y Gana RD</h1>
-                        <h2>Dashboard</h2>
-                        <p>Welcome to your dashboard.</p>
-                        <p>If you're seeing this, <code>dashboard.html</code> is missing from the <code>public/</code> folder.</p>
-                        <p>Please add the file and redeploy.</p>
-                        <p><a href="/">⬅️ Back to Home</a></p>
-                    </div>
-                </body>
-                </html>
-            `);
-        }
-    });
+    res.redirect('/dashboard.html');
+});
+
+app.get('/dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 app.get('/admin', (req, res) => {
@@ -666,44 +677,14 @@ app.get('/terms', (req, res) => {
 });
 
 // ============================================
-// TEST ENDPOINT (for manual testing)
-// ============================================
-app.post('/test-send', async (req, res) => {
-    const { to, text } = req.body;
-    if (!to || !text) {
-        return res.status(400).json({ error: 'Missing "to" or "text"' });
-    }
-    try {
-        const result = await sendWhatsAppMessage(to, text);
-        res.json({ success: true, result });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// ============================================
-// WEBHOOK ENDPOINTS (for receiving messages and status updates)
-// ============================================
-app.post('/webhook/vonage/inbound', (req, res) => {
-    console.log('📩 Incoming WhatsApp:', req.body);
-    res.status(200).send('OK');
-});
-
-app.post('/webhook/vonage/status', (req, res) => {
-    console.log('📊 Status Update:', req.body);
-    res.status(200).send('OK');
-});
-
-// ============================================
 // START SERVER
 // ============================================
 app.listen(PORT, () => {
     console.log('========================================');
     console.log(`🚀 ${PROJECT_NAME} API`);
-    console.log(`📱 WhatsApp Provider: Vonage (Sandbox)`);
-    console.log(`🔑 From Number: ${VONAGE_FROM_NUMBER}`);
-    console.log(`🧪 Test Number Lock: ${TEST_PHONE_NUMBER}`);
-    console.log(`🔓 All Numbers Allowed: ${ALLOW_ALL_NUMBERS}`);
+    console.log(`📱 Notification Provider: Telegram`);
+    console.log(`🤖 Bot Token Set: ${TELEGRAM_BOT_TOKEN ? '✅ YES' : '❌ NO'}`);
+    console.log(`👤 Default Chat ID: ${DEFAULT_CHAT_ID || '❌ NOT SET'}`);
     console.log('========================================');
     console.log('✅ ALL CREDENTIALS CONFIGURED!');
     console.log('========================================');
@@ -711,22 +692,17 @@ app.listen(PORT, () => {
     console.log(`   • POST /api/register`);
     console.log(`   • POST /api/admin/approve-payment`);
     console.log(`   • GET  /api/user/:phone`);
-    console.log(`   • GET  /api/user/:phone/referrals`);
-    console.log(`   • GET  /api/user/:phone/payouts`);
-    console.log(`   • POST /api/user/update-banking`);
+    console.log(`   • POST /api/user/update-telegram (link Telegram)`);
     console.log(`   • GET  /api/admin/pending`);
     console.log(`   • GET  /api/admin/users`);
     console.log(`   • GET  /api/admin/pending-payouts`);
     console.log(`   • POST /api/admin/create-payout`);
     console.log(`   • POST /api/admin/complete-payout`);
-    console.log(`   • POST /test-send (testing only)`);
-    console.log(`   • POST /webhook/vonage/inbound`);
-    console.log(`   • POST /webhook/vonage/status`);
     console.log(`   • GET  / -> signup page`);
     console.log(`   • GET  /dashboard`);
     console.log(`   • GET  /admin`);
     console.log('========================================');
-    console.log(`🧪 SKIP_WHATSAPP is ${SKIP_WHATSAPP ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`🧪 SKIP_TELEGRAM is ${SKIP_TELEGRAM ? 'ENABLED' : 'DISABLED'}`);
     console.log('========================================');
 });
 
