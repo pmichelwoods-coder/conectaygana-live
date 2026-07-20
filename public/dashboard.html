@@ -95,20 +95,22 @@
         function savePhone(p) { localStorage.setItem(PHONE_KEY, p); }
 
         function normalizePhone(phone) {
-            const cleaned = phone.replace(/\D/g, '');
-            if (cleaned.length === 10) return '1' + cleaned;
-            return cleaned;
-        }
-
+   	 const cleaned = phone.replace(/\D/g, '');
+    	if (cleaned.length === 10) return '1' + cleaned;
+   	 return cleaned;
+	}
         async function loadDashboard(phone) {
             try {
                 const userRes = await fetch(`${API_BASE}/api/user/${phone}`);
-                if (!userRes.ok) {
-                    if (userRes.status === 404) {
-                        alert('Usuario no encontrado. Registrate primero.');
-                        window.location.href = '/';
-                        return;
-                    }
+               if (userRes.status === 404) {
+    alert('Usuario no encontrado. Registrate primero.');
+    // Preserve referral code from URL if any
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref') || '';
+    const redirectUrl = ref ? `/?ref=${ref}` : '/';
+    window.location.href = redirectUrl;
+    return;
+}
                     throw new Error('Error al cargar');
                 }
                 const user = await userRes.json();
@@ -207,7 +209,7 @@
             let phone = params.get('phone') || getPhone();
 
             if (!phone) {
-                const userPhone = prompt('📱 Ingresa tu número de WhatsApp (ej: 8498634889):');
+                const userPhone = prompt('📱 Ingresa tu número de Telegram (ej: 8498634889):');
                 if (userPhone) {
                     phone = normalizePhone(userPhone);
                 } else {
