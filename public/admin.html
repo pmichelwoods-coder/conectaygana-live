@@ -13,6 +13,13 @@
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
         th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #e8eaed; }
         th { background: #f8f9fa; font-weight: 600; color: #5f6368; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+        .btn:hover { background: #1557b0; }
+        .btn-success { background: #1e8e3e; }
+        .btn-success:hover { background: #166b30; }
+        .btn-danger { background: #d93025; }
+        .btn-danger:hover { background: #b71c1c; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; margin: 2px; }
         .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
         .status-pending { background: #fef7e0; color: #ea8600; }
         .status-approved { background: #e6f4ea; color: #1e8e3e; }
@@ -23,6 +30,7 @@
         .hidden { display: none; }
         .loading { text-align: center; padding: 40px; color: #5f6368; }
         .error-msg { background: #fce8e6; color: #d93025; padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
+        .success-msg { background: #e6f4ea; color: #1e8e3e; padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -32,7 +40,28 @@
 
         <div id="content" class="hidden">
 
-            <!-- ==================== TOP SECTION: USERS ==================== -->
+            <!-- ==================== SECTION 1: PENDING APPROVALS ==================== -->
+            <div class="section">
+                <h2>⏳ Aprobaciones Pendientes</h2>
+                <div id="pending-message"></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Comprobante</th>
+                            <th>Ref. Code</th>
+                            <th>Fecha</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pending-table-body">
+                        <tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay aprobaciones pendientes.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ==================== SECTION 2: ALL USERS ==================== -->
             <div class="section">
                 <h2>📊 Todos los Usuarios</h2>
                 <div id="users-message"></div>
@@ -56,7 +85,7 @@
                 </table>
             </div>
 
-            <!-- ==================== BOTTOM SECTION: PENDING PAYOUTS (READ-ONLY) ==================== -->
+            <!-- ==================== SECTION 3: PENDING PAYOUTS (READ-ONLY) ==================== -->
             <div class="section">
                 <h2>💰 Pagos Pendientes</h2>
                 <div id="payouts-message"></div>
@@ -87,12 +116,13 @@
 
     <script>
         // ============================================
-        // ADMIN – v4.0 – 2026-07-21
+        // ADMIN – v4.1 – 2026-07-21
         // ============================================
         const API_BASE = '';
 
         const loading = document.getElementById('loading');
         const content = document.getElementById('content');
+        const pendingTbody = document.getElementById('pending-table-body');
         const usersTbody = document.getElementById('users-table-body');
         const payoutsTbody = document.getElementById('payouts-table-body');
 
@@ -117,6 +147,11 @@
                 loading.classList.remove('hidden');
                 content.classList.add('hidden');
 
+                // Fetch pending approvals
+                const pendingRes = await fetch(`${API_BASE}/api/admin/pending`);
+                if (!pendingRes.ok) throw new Error('Error al obtener pendientes');
+                const pendingData = await pendingRes.json();
+
                 // Fetch users
                 const usersRes = await fetch(`${API_BASE}/api/admin/users`);
                 if (!usersRes.ok) throw new Error('Error al obtener usuarios');
@@ -127,19 +162,41 @@
                 if (!payoutsRes.ok) throw new Error('Error al obtener pagos pendientes');
                 const payoutsData = await payoutsRes.json();
 
-                render(usersData.users, payoutsData.payouts);
+                render(pendingData.users, usersData.users, payoutsData.payouts);
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
             } catch (err) {
                 console.error('Error:', err);
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
-                document.getElementById('users-message').innerHTML =
+                document.getElementById('pending-message').innerHTML =
                     `<div class="error-msg">❌ Error: ${err.message}</div>`;
             }
         }
 
-        function render(users, pendingPayouts) {
+        function render(pendingUsers, allUsers, pendingPayouts) {
+            // ---------- Pending Approvals ----------
+            if (!pendingUsers || pendingUsers.length === 0) {
+                pendingTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay aprobaciones pendientes.</td></tr>';
+            } else {
+                let html = '';
+                pendingUsers.forEach(u => {
+                    html += `<tr>
+                        <td>${u.name}</td>
+                        <td>${u.phone}</td>
+                        <td>${u.comprobante}</td>
+                        <td>${u.refereeCode || '-'}</td>
+                        <td>${formatDate(u.createdAt)}</td>
+                        <td>
+                            <button class="btn btn-success btn-sm" onclick="handleApproval('${u.id}', 'approve')">✅ Aprobar</button>
+                            <button class="btn btn-danger btn-sm" onclick="handleApproval('${u.id}', 'reject')">❌ Rechazar</button>
+                        </td>
+                    </tr>`;
+                });
+                pendingTbody.innerHTML = html;
+            }
+
+            // ---------- All Users ----------
             // Build pending amount map per user
             const pendingMap = {};
             pendingPayouts.forEach(p => {
@@ -148,12 +205,11 @@
                 pendingMap[phone] += p.amount;
             });
 
-            // ---------- Users Table ----------
-            if (!users || users.length === 0) {
+            if (!allUsers || allUsers.length === 0) {
                 usersTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>';
             } else {
                 let html = '';
-                users.forEach(u => {
+                allUsers.forEach(u => {
                     const pending = pendingMap[u.phone] || 0;
                     const totalPaid = u.totalPaid || 0;
                     const totalAcumulado = totalPaid + pending;
@@ -173,7 +229,7 @@
                 usersTbody.innerHTML = html;
             }
 
-            // ---------- Pending Payouts Table (read-only) ----------
+            // ---------- Pending Payouts (read-only) ----------
             if (!pendingPayouts || pendingPayouts.length === 0) {
                 payoutsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay pagos pendientes.</td></tr>';
             } else {
@@ -191,6 +247,31 @@
                     </tr>`;
                 });
                 payoutsTbody.innerHTML = html;
+            }
+        }
+
+        // ============================================
+        // HANDLE APPROVAL / REJECTION
+        // ============================================
+        async function handleApproval(userId, action) {
+            const actionText = action === 'approve' ? 'aprobar' : 'rechazar';
+            if (!confirm(`¿Estás seguro de ${actionText} a este usuario?`)) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/approve-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, action })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert(`✅ Usuario ${action === 'approve' ? 'aprobado' : 'rechazado'} exitosamente.`);
+                    fetchAllData(); // refresh all tables
+                } else {
+                    alert('❌ Error: ' + (data.error || 'No se pudo procesar la solicitud.'));
+                }
+            } catch (err) {
+                alert('❌ Error de conexión: ' + err.message);
             }
         }
 
