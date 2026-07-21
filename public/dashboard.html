@@ -11,7 +11,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 16px;
@@ -22,66 +22,48 @@
             color: #1a73e8;
             margin-bottom: 20px;
         }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin: 25px 0;
-        }
-        .stat-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            border: 1px solid #e8eaed;
-        }
-        .stat-card .number {
-            font-size: 32px;
-            font-weight: 700;
-            color: #1a73e8;
-        }
-        .stat-card .label {
+        table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 14px;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e8eaed;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
             color: #5f6368;
-            margin-top: 5px;
-        }
-        .section {
-            margin-top: 25px;
-            border-top: 1px solid #e8eaed;
-            padding-top: 20px;
-        }
-        .referral-link-box {
-            background: #f8f9fa;
-            border: 1px dashed #dadce0;
-            border-radius: 8px;
-            padding: 12px 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .referral-link-box input {
-            flex: 1;
-            min-width: 200px;
-            padding: 10px;
-            border: 1px solid #dadce0;
-            border-radius: 6px;
-            font-size: 14px;
-            background: white;
         }
         .btn {
             background: #1a73e8;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 6px 14px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
         }
         .btn:hover {
             background: #1557b0;
+        }
+        .hidden {
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #5f6368;
+        }
+        .error-msg {
+            background: #fce8e6;
+            color: #d93025;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
         .footer {
             margin-top: 30px;
@@ -93,60 +75,53 @@
             color: #1a73e8;
             text-decoration: none;
         }
-        .hidden {
-            display: none;
+        input[type="text"], input[type="date"] {
+            padding: 6px 10px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 13px;
         }
-        .error-msg {
-            background: #fce8e6;
-            color: #d93025;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 15px;
+        .checkbox-large {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
         }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #5f6368;
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
         }
+        .status-pending { background: #fef7e0; color: #ea8600; }
+        .status-completed { background: #e3f2fd; color: #1a73e8; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📊 Conecta Y Gana RD</h1>
-        <div id="loading" class="loading">⏳ Cargando tu información...</div>
+        <h1>📊 Conecta Y Gana RD – Dashboard</h1>
+        <div id="loading" class="loading">⏳ Cargando pagos pendientes...</div>
         <div id="error-area" class="hidden"></div>
 
         <div id="content" class="hidden">
-            <p id="user-name" style="font-size: 16px; color: #202124;">👋 Bienvenido, <strong>Cargando...</strong></p>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="number" id="stat-clients">0</div>
-                    <div class="label">Total Clientes</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="stat-paid">RD$0</div>
-                    <div class="label">Total Pagado</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="stat-pending">RD$0</div>
-                    <div class="label">Pago Pendiente</div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h3>🔗 Tu enlace de referido</h3>
-                <div class="referral-link-box">
-                    <input type="text" id="referral-link" readonly>
-                    <button class="btn" onclick="copyLink()">📋 Copiar</button>
-                </div>
-            </div>
-
-            <div class="section" id="payout-section" style="display: none;">
-                <h3>💰 Tienes un pago pendiente</h3>
-                <p style="color: #1e8e3e; font-size: 18px; font-weight: 700;" id="pending-amount">RD$0</p>
-                <p style="color: #5f6368;">Cuando el administrador lo procese, aparecerá en "Total Pagado".</p>
-            </div>
+            <h2 style="color: #202124; margin-bottom: 15px;">💰 Pagos Pendientes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th>Banco</th>
+                        <th>Cuenta</th>
+                        <th>Monto</th>
+                        <th>Comprobante</th>
+                        <th>Fecha de Pago</th>
+                        <th>Marcar Pagado</th>
+                    </tr>
+                </thead>
+                <tbody id="payouts-table-body">
+                    <tr><td colspan="8" style="text-align:center; color:#9aa0a6;">No hay pagos pendientes.</td></tr>
+                </tbody>
+            </table>
         </div>
 
         <div class="footer">
@@ -158,17 +133,14 @@
 
     <script>
         // ============================================
-        // DASHBOARD – v3.0 – 2026-07-21
+        // DASHBOARD – v4.0 – 2026-07-21
         // ============================================
         const API_BASE = '';
-        const PHONE_KEY = 'dashboard_phone';
 
         const loading = document.getElementById('loading');
         const content = document.getElementById('content');
         const errorArea = document.getElementById('error-area');
-
-        function getPhone() { return localStorage.getItem(PHONE_KEY) || ''; }
-        function savePhone(p) { localStorage.setItem(PHONE_KEY, p); }
+        const payoutsTbody = document.getElementById('payouts-table-body');
 
         function showError(msg) {
             errorArea.classList.remove('hidden');
@@ -181,30 +153,25 @@
             errorArea.innerHTML = '';
         }
 
-        async function loadDashboard(phone) {
+        function statusBadge(status) {
+            const map = {
+                'pending': 'status-pending',
+                'completed': 'status-completed'
+            };
+            return `<span class="status-badge ${map[status] || ''}">${status.toUpperCase()}</span>`;
+        }
+
+        async function fetchPendingPayouts() {
             try {
                 hideError();
                 loading.classList.remove('hidden');
                 content.classList.add('hidden');
 
-                // Fetch user
-                const userRes = await fetch(`${API_BASE}/api/user/${phone}`);
-                if (!userRes.ok) {
-                    if (userRes.status === 404) {
-                        alert('Usuario no encontrado. Registrate primero.');
-                        window.location.href = '/';
-                        return;
-                    }
-                    throw new Error(`HTTP ${userRes.status}`);
-                }
-                const user = await userRes.json();
+                const res = await fetch(`${API_BASE}/api/admin/pending-payouts`);
+                if (!res.ok) throw new Error('Error al obtener pagos pendientes');
+                const data = await res.json();
 
-                // Fetch payouts
-                const payRes = await fetch(`${API_BASE}/api/user/${phone}/payouts`);
-                const payouts = payRes.ok ? await payRes.json() : { payouts: [] };
-
-                // Render
-                renderDashboard(user, payouts);
+                renderPayouts(data.payouts);
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
             } catch (err) {
@@ -213,78 +180,77 @@
             }
         }
 
-        function renderDashboard(user, payouts) {
-            // User name
-            document.getElementById('user-name').innerHTML = `👋 Bienvenido, <strong>${user.name || 'Usuario'}</strong>`;
-
-            // Stats
-            const totalClients = user.totalCustomers || 0;
-            const totalPaid = user.totalPaid || 0;
-            // Calculate pending = sum of payouts with status 'pending'
-            const pendingAmount = (payouts.payouts || [])
-                .filter(p => p.status === 'pending')
-                .reduce((sum, p) => sum + (p.amount || 0), 0);
-
-            document.getElementById('stat-clients').textContent = totalClients;
-            document.getElementById('stat-paid').textContent = `RD$${totalPaid.toLocaleString()}`;
-            document.getElementById('stat-pending').textContent = `RD$${pendingAmount.toLocaleString()}`;
-
-            // Referral link
-            const baseUrl = window.location.origin;
-            const code = user.referralCode || '';
-            document.getElementById('referral-link').value = code ? `${baseUrl}/?ref=${code}` : '⚠️ Sin código aún';
-
-            // Show pending payout section if any
-            const section = document.getElementById('payout-section');
-            if (pendingAmount > 0) {
-                section.style.display = 'block';
-                document.getElementById('pending-amount').textContent = `RD$${pendingAmount.toLocaleString()}`;
-            } else {
-                section.style.display = 'none';
-            }
-
-            savePhone(user.phone);
-        }
-
-        function copyLink() {
-            const input = document.getElementById('referral-link');
-            if (!input.value || input.value.includes('⚠️')) {
-                alert('No hay enlace para copiar aún.');
+        function renderPayouts(payouts) {
+            if (!payouts || payouts.length === 0) {
+                payoutsTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#9aa0a6;">No hay pagos pendientes.</td></tr>';
                 return;
             }
-            navigator.clipboard.writeText(input.value)
-                .then(() => alert('✅ Enlace copiado!'))
-                .catch(() => {
-                    input.select();
-                    document.execCommand('copy');
-                    alert('✅ Enlace copiado!');
-                });
+
+            let html = '';
+            payouts.forEach(p => {
+                const bank = p.bankingDetails?.bankName || 'N/A';
+                const account = p.bankingDetails?.accountNumber || 'N/A';
+                html += `<tr id="payout-row-${p.id}">
+                    <td>${p.refereeName}</td>
+                    <td>${p.refereePhone}</td>
+                    <td>${bank}</td>
+                    <td>${account}</td>
+                    <td>RD$ ${p.amount.toLocaleString()}</td>
+                    <td><input type="text" id="txn-${p.id}" placeholder="N° Transacción"></td>
+                    <td><input type="date" id="date-${p.id}" value="${new Date().toISOString().split('T')[0]}"></td>
+                    <td>
+                        <input type="checkbox" class="checkbox-large" id="check-${p.id}" onchange="completePayout('${p.id}')">
+                    </td>
+                </tr>`;
+            });
+            payoutsTbody.innerHTML = html;
         }
 
-        // ============================================
-        // INIT
-        // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(window.location.search);
-            let phone = params.get('phone') || getPhone();
+        async function completePayout(payoutId) {
+            const checkbox = document.getElementById(`check-${payoutId}`);
+            if (!checkbox.checked) return;
 
-            if (!phone) {
-                const userPhone = prompt('📱 Ingresa tu número de teléfono (ej: 8498634889):');
-                if (userPhone) {
-                    phone = userPhone.replace(/\D/g, '');
-                    savePhone(phone);
+            if (!confirm(`¿Marcar este pago como completado?`)) {
+                checkbox.checked = false;
+                return;
+            }
+
+            const txnInput = document.getElementById(`txn-${payoutId}`);
+            const dateInput = document.getElementById(`date-${payoutId}`);
+            const transactionNumber = txnInput.value.trim();
+            const transactionDate = dateInput.value;
+
+            if (!transactionNumber) {
+                alert('Por favor, ingresa el número de transacción.');
+                checkbox.checked = false;
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/complete-payout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        payoutId,
+                        transactionNumber,
+                        transactionDate
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert('✅ Pago completado exitosamente');
+                    fetchPendingPayouts(); // refresh the list
                 } else {
-                    window.location.href = '/';
-                    return;
+                    alert('❌ Error: ' + (data.error || 'No se pudo completar el pago'));
+                    checkbox.checked = false;
                 }
+            } catch (err) {
+                alert('❌ Error de conexión: ' + err.message);
+                checkbox.checked = false;
             }
+        }
 
-            if (phone) {
-                loadDashboard(phone);
-            } else {
-                showError('No se pudo obtener tu número.');
-            }
-        });
+        document.addEventListener('DOMContentLoaded', fetchPendingPayouts);
     </script>
 </body>
 </html>
