@@ -3,286 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Conecta Y Gana RD 5 Mil</title>
+    <title>Admin - Conecta Y Gana RD</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
-            background: #e8f0fe;
-            min-height: 100vh;
+            background: #f0f2f5;
             padding: 20px;
         }
         .container {
-            max-width: 1000px;
+            max-width: 1400px;
             margin: 0 auto;
-            background: #ffffff;
+            background: white;
             border-radius: 16px;
             padding: 30px;
-            border: 1px solid #c0d0e0;
-            box-shadow: 0 8px 30px rgba(0,20,50,0.1);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
         }
         h1 {
-            color: #0a2a44;
-            border-bottom: 2px solid #4a7aaa;
-            padding-bottom: 12px;
+            color: #1a73e8;
             margin-bottom: 25px;
         }
-        .pending-list, .all-users {
-            margin-top: 30px;
+        .section {
+            margin-top: 35px;
+            border-top: 2px solid #e8eaed;
+            padding-top: 25px;
+        }
+        .section h2 {
+            font-size: 20px;
+            color: #202124;
+            margin-bottom: 15px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
         }
-        th {
-            background: #0a2a44;
-            color: white;
-            padding: 10px;
+        th, td {
+            padding: 12px 10px;
             text-align: left;
+            border-bottom: 1px solid #e8eaed;
         }
-        td {
-            padding: 10px;
-            border-bottom: 1px solid #e0e8f0;
-        }
-        tr:hover {
-            background: #f8faff;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 3px 12px;
-            border-radius: 20px;
+        th {
+            background: #f8f9fa;
             font-weight: 600;
-            font-size: 12px;
+            color: #5f6368;
         }
-        .status-pending { background: #f39c12; color: white; }
-        .status-approved { background: #27ae60; color: white; }
-        .status-rejected { background: #e74c3c; color: white; }
-        .status-expired { background: #95a5a6; color: white; }
-
-        .btn-approve {
-            background: #27ae60;
+        .btn {
+            background: #1a73e8;
             color: white;
             border: none;
-            padding: 6px 15px;
-            border-radius: 20px;
+            padding: 6px 14px;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 13px;
             font-weight: 600;
         }
-        .btn-reject {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 6px 15px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
+        .btn:hover {
+            background: #1557b0;
         }
-        .btn-approve:hover { background: #219a52; }
-        .btn-reject:hover { background: #c0392b; }
-
-        .btn-loading {
-            opacity: 0.6;
-            cursor: not-allowed;
+        .btn-success {
+            background: #1e8e3e;
         }
-
-        .message {
-            padding: 12px;
-            border-radius: 10px;
-            margin: 15px 0;
+        .btn-success:hover {
+            background: #166b30;
+        }
+        .btn-danger {
+            background: #d93025;
+        }
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+        .hidden {
             display: none;
         }
-        .message.success {
-            display: block;
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #5f6368;
         }
-        .message.error {
-            display: block;
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .error-msg {
+            background: #fce8e6;
+            color: #d93025;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
+        .success-msg {
+            background: #e6f4ea;
+            color: #1e8e3e;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-pending { background: #fef7e0; color: #ea8600; }
+        .status-approved { background: #e6f4ea; color: #1e8e3e; }
+        .status-rejected { background: #fce8e6; color: #d93025; }
+        .status-completed { background: #e3f2fd; color: #1a73e8; }
         .footer {
             margin-top: 30px;
             text-align: center;
             font-size: 12px;
-            color: #6a7a8a;
-            border-top: 1px solid #c0d0e0;
-            padding-top: 15px;
+            color: #9aa0a6;
         }
-        .badge {
-            background: #f39c12;
-            color: white;
-            border-radius: 50%;
-            padding: 2px 10px;
-            font-size: 12px;
-            margin-left: 8px;
+        .footer a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        .flex {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        input[type="text"], input[type="date"] {
+            padding: 6px 10px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .checkbox-large {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>🛡️ Panel de Administración</h1>
+    <div class="container">
+        <h1>🛠️ Panel de Administración</h1>
+        <div id="loading" class="loading">⏳ Cargando...</div>
 
-    <div id="message" class="message"></div>
+        <div id="content" class="hidden">
 
-    <div class="pending-list">
-        <h2 style="color:#0a2a44;">⏳ Aprobaciones Pendientes <span id="pendingCount" class="badge">0</span></h2>
-        <table id="pendingTable">
-            <thead>
-                <tr><th>Nombre</th><th>Teléfono</th><th>Comprobante</th><th>Ref.</th><th>Fecha</th><th>Acción</th></tr>
-            </thead>
-            <tbody id="pendingBody">
-                <tr><td colspan="6" style="text-align:center; color:#888;">Cargando...</td></tr>
-            </tbody>
-        </table>
+            <!-- ======================== TOP SECTION: USERS ======================== -->
+            <div class="section">
+                <h2>📊 Todos los Usuarios</h2>
+                <div id="users-message"></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Ref. Code</th>
+                            <th>Clientes</th>
+                            <th>Expira</th>
+                            <th>Total Acumulado</th>
+                            <th>Total Pagado</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <tr><td colspan="9" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ======================== BOTTOM SECTION: PENDING PAYOUTS ======================== -->
+            <div class="section">
+                <h2>💰 Pagos Pendientes</h2>
+                <div id="payouts-message"></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Monto</th>
+                            <th>Comprobante</th>
+                            <th>Fecha de Pago</th>
+                            <th>Marcar Pagado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payouts-table-body">
+                        <tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay pagos pendientes.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="/">🏠 Inicio</a> |
+            <a href="/dashboard">📊 Dashboard</a> |
+            <a href="/terms">📜 Términos</a>
+        </div>
     </div>
 
-    <hr style="margin: 30px 0; border-color: #c0d0e0;">
+    <script>
+        // ============================================
+        // ADMIN – v3.0 – 2026-07-21
+        // ============================================
+        const API_BASE = '';
 
-    <div class="all-users">
-        <h2 style="color:#0a2a44;">📋 Todos los Usuarios</h2>
-        <table id="allUsersTable">
-            <thead>
-                <tr><th>Nombre</th><th>Teléfono</th><th>Estado</th><th>Ref. Code</th><th>Clientes</th><th>Expira</th></tr>
-            </thead>
-            <tbody id="allUsersBody">
-                <tr><td colspan="6" style="text-align:center; color:#888;">Cargando...</td></tr>
-            </tbody>
-        </table>
-    </div>
+        const loading = document.getElementById('loading');
+        const content = document.getElementById('content');
+        const usersTbody = document.getElementById('users-table-body');
+        const payoutsTbody = document.getElementById('payouts-table-body');
 
-    <div class="footer">
-        <a href="/">🏠 Inicio</a> · <a href="/dashboard?phone=admin">📊 Dashboard</a>
-    </div>
-</div>
+        function showMessage(el, text, type) {
+            const cls = type === 'error' ? 'error-msg' : 'success-msg';
+            el.innerHTML = `<div class="${cls}">${text}</div>`;
+            setTimeout(() => { el.innerHTML = ''; }, 5000);
+        }
 
-<script>
-    // ============================================================
-    // 1. Load pending approvals
-    // ============================================================
-    async function loadPending() {
-        try {
-            const res = await fetch('/api/admin/pending');
-            const data = await res.json();
-            const users = data.users || [];
-            const tbody = document.getElementById('pendingBody');
-            const countSpan = document.getElementById('pendingCount');
-            countSpan.textContent = users.length;
+        function statusBadge(status) {
+            const map = {
+                'pending': 'status-pending',
+                'approved': 'status-approved',
+                'rejected': 'status-rejected',
+                'completed': 'status-completed'
+            };
+            return `<span class="status-badge ${map[status] || ''}">${status.toUpperCase()}</span>`;
+        }
 
-            if (users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">No hay aprobaciones pendientes.</td></tr>';
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('es-DO');
+        }
+
+        function renderUsers(users) {
+            if (!users || users.length === 0) {
+                usersTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>';
                 return;
             }
 
-            let html = '';
-            users.forEach(user => {
-                html += `<tr>
-                    <td><strong>${user.name}</strong></td>
-                    <td>${user.phone}</td>
-                    <td>${user.comprobante}</td>
-                    <td>${user.refereeCode || 'N/A'}</td>
-                    <td>${new Date(user.createdAt).toLocaleDateString()}</td>
-                    <td>
-                        <button class="btn-approve" onclick="approveUser('${user.id}')">✅ Aprobar</button>
-                        <button class="btn-reject" onclick="rejectUser('${user.id}')">❌ Rechazar</button>
-                    </td>
-                </tr>`;
-            });
-            tbody.innerHTML = html;
-        } catch (error) {
-            console.error(error);
-            document.getElementById('pendingBody').innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error al cargar pendientes</td></tr>';
+            // For each user, calculate totals from payouts
+            // We need to fetch payouts for each user? Better to fetch all payouts once and aggregate.
+            // We'll fetch all payouts from the server? We already have /api/admin/pending-payouts but that only gives pending.
+            // We need all payouts for totals. Let's use /api/admin/users and /api/admin/payouts (if we had one). We don't have that endpoint.
+            // We'll create a new endpoint or we can compute from the user's totalPaid and totalPending? Actually user has totalPaid, but we need total acumulado = totalPaid + pending.
+            // We can get pending amount from the payout list (if any). We'll fetch pending payouts separately and aggregate per user.
+
+            // We'll use the user's totalPaid and pending amount from payouts.
+            // Let's fetch pending payouts and group by phone to get pending amount.
+            // We'll also need to know if there are any completed payouts (totalPaid already includes them).
+            // So total acumulado = totalPaid + pendingAmount.
+            // We'll compute after we have payouts data.
+
+            // Since we need payouts anyway, we'll fetch them separately.
+            // But we already have a function to fetch pending payouts; we'll do that after users.
+            // However, to avoid multiple fetches, we'll combine.
+
+            // For simplicity, we'll fetch users and then pending payouts, and then compute.
         }
-    }
 
-    // ============================================================
-    // 2. Approve / Reject actions
-    // ============================================================
-    async function approveUser(userId) {
-        if (!confirm('¿Aprobar este depósito?')) return;
-        await processAction(userId, 'approve');
-    }
+        // ============================================
+        // FETCH DATA
+        // ============================================
+        async function fetchAllData() {
+            try {
+                loading.classList.remove('hidden');
+                content.classList.add('hidden');
 
-    async function rejectUser(userId) {
-        if (!confirm('¿Rechazar este depósito?')) return;
-        await processAction(userId, 'reject');
-    }
+                // 1. Fetch users
+                const usersRes = await fetch(`${API_BASE}/api/admin/users`);
+                if (!usersRes.ok) throw new Error('Error al obtener usuarios');
+                const usersData = await usersRes.json();
 
-    async function processAction(userId, action) {
-        const msgDiv = document.getElementById('message');
-        msgDiv.className = 'message';
-        msgDiv.textContent = '';
-        try {
-            const res = await fetch('/api/admin/approve-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, action })
+                // 2. Fetch pending payouts
+                const payoutsRes = await fetch(`${API_BASE}/api/admin/pending-payouts`);
+                if (!payoutsRes.ok) throw new Error('Error al obtener pagos pendientes');
+                const payoutsData = await payoutsRes.json();
+
+                // 3. Render
+                render(usersData.users, payoutsData.payouts);
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+            } catch (err) {
+                console.error('Error:', err);
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+                showMessage(document.getElementById('users-message'), 'Error cargando datos: ' + err.message, 'error');
+            }
+        }
+
+        // ============================================
+        // RENDER
+        // ============================================
+        function render(users, pendingPayouts) {
+            // Build map of pending amounts per user
+            const pendingMap = {};
+            pendingPayouts.forEach(p => {
+                const phone = p.refereePhone;
+                if (!pendingMap[phone]) pendingMap[phone] = 0;
+                pendingMap[phone] += p.amount;
             });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                msgDiv.className = 'message success';
-                msgDiv.textContent = `✅ ${action === 'approve' ? 'Aprobado' : 'Rechazado'} exitosamente.`;
-                // Refresh both lists
-                loadPending();
-                loadAllUsers();
+
+            // Render users table
+            if (!users || users.length === 0) {
+                usersTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>';
             } else {
-                throw new Error(data.error || 'Error al procesar');
+                let html = '';
+                users.forEach(u => {
+                    const pending = pendingMap[u.phone] || 0;
+                    const totalPaid = u.totalPaid || 0;
+                    const totalAcumulado = totalPaid + pending;
+                    const balance = pending; // balance = pending amount
+                    html += `<tr>
+                        <td>${u.name}</td>
+                        <td>${u.phone}</td>
+                        <td>${statusBadge(u.status)}</td>
+                        <td>${u.referralCode || '-'}</td>
+                        <td>${u.totalCustomers || 0}</td>
+                        <td>${u.expiresAt ? formatDate(u.expiresAt) : '-'}</td>
+                        <td>RD$ ${totalAcumulado.toLocaleString()}</td>
+                        <td>RD$ ${totalPaid.toLocaleString()}</td>
+                        <td>RD$ ${balance.toLocaleString()}</td>
+                    </tr>`;
+                });
+                usersTbody.innerHTML = html;
             }
-        } catch (error) {
-            msgDiv.className = 'message error';
-            msgDiv.textContent = '❌ ' + error.message;
+
+            // Render pending payouts table
+            if (!pendingPayouts || pendingPayouts.length === 0) {
+                payoutsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay pagos pendientes.</td></tr>';
+            } else {
+                let html = '';
+                pendingPayouts.forEach(p => {
+                    html += `<tr id="payout-row-${p.id}">
+                        <td>${p.refereeName}</td>
+                        <td>${p.refereePhone}</td>
+                        <td>RD$ ${p.amount.toLocaleString()}</td>
+                        <td><input type="text" id="txn-${p.id}" placeholder="N° Transacción"></td>
+                        <td><input type="date" id="date-${p.id}" value="${new Date().toISOString().split('T')[0]}"></td>
+                        <td>
+                            <input type="checkbox" class="checkbox-large" id="check-${p.id}" onchange="completePayout('${p.id}')">
+                        </td>
+                    </tr>`;
+                });
+                payoutsTbody.innerHTML = html;
+            }
         }
-    }
 
-    // ============================================================
-    // 3. Load all users (for reference)
-    // ============================================================
-    async function loadAllUsers() {
-        try {
-            const res = await fetch('/api/admin/users');
-            const data = await res.json();
-            const users = data.users || [];
-            const tbody = document.getElementById('allUsersBody');
+        // ============================================
+        // COMPLETE PAYOUT
+        // ============================================
+        async function completePayout(payoutId) {
+            const checkbox = document.getElementById(`check-${payoutId}`);
+            if (!checkbox.checked) return;
 
-            if (users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">No hay usuarios registrados.</td></tr>';
+            // Confirm
+            if (!confirm(`¿Marcar este pago como completado?`)) {
+                checkbox.checked = false;
                 return;
             }
 
-            let html = '';
-            users.forEach(user => {
-                const statusClass = user.status || 'pending';
-                const statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
-                html += `<tr>
-                    <td><strong>${user.name}</strong></td>
-                    <td>${user.phone}</td>
-                    <td><span class="status-badge status-${statusClass}">${statusLabel}</span></td>
-                    <td>${user.referralCode || '-'}</td>
-                    <td>${user.totalCustomers || 0}</td>
-                    <td>${user.expiresAt ? new Date(user.expiresAt).toLocaleDateString() : '-'}</td>
-                </tr>`;
-            });
-            tbody.innerHTML = html;
-        } catch (error) {
-            console.error(error);
-            document.getElementById('allUsersBody').innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error al cargar usuarios</td></tr>';
+            const txnInput = document.getElementById(`txn-${payoutId}`);
+            const dateInput = document.getElementById(`date-${payoutId}`);
+            const transactionNumber = txnInput.value.trim();
+            const transactionDate = dateInput.value;
+
+            if (!transactionNumber) {
+                alert('Por favor, ingresa el número de transacción.');
+                checkbox.checked = false;
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/complete-payout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        payoutId,
+                        transactionNumber,
+                        transactionDate
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    // Remove the row from the table or refresh all data
+                    alert('✅ Pago completado exitosamente');
+                    fetchAllData(); // refresh both tables
+                } else {
+                    alert('❌ Error: ' + (data.error || 'No se pudo completar el pago'));
+                    checkbox.checked = false;
+                }
+            } catch (err) {
+                alert('❌ Error de conexión: ' + err.message);
+                checkbox.checked = false;
+            }
         }
-    }
 
-    // ============================================================
-    // 4. Initial load
-    // ============================================================
-    loadPending();
-    loadAllUsers();
-
-    // Refresh every 30 seconds (optional)
-    setInterval(() => {
-        loadPending();
-        loadAllUsers();
-    }, 30000);
-</script>
+        // ============================================
+        // INIT
+        // ============================================
+        document.addEventListener('DOMContentLoaded', fetchAllData);
+    </script>
 </body>
 </html>
