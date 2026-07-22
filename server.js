@@ -268,16 +268,16 @@ app.post('/api/admin/approve-payment', async (req, res) => {
             writeDB(db);
 
             await sendNotification(user.phone,
-                `🎉 ¡FELICITACIONES ${user.name}! Tu depósito ha sido APROBADO.\n\n` +
-                `✅ Tu cuenta está activa por 90 días.\n` +
-                `🔑 Tu código de referido es: *${referralCode}*\n\n` +
-                `📱 Comparte tu enlace:\n` +
-                `https://conectaygana-live-1.onrender.com/?ref=${referralCode}\n\n` +
-                `💰 Gana RD 5,000 por cada 5 clientes.\n` +
-                `📌 No hay límite para ganar.\n\n` +
-                `"Tú ayudas, otros crecen, todos ganamos."`
-            );
-
+    `🎉 ¡FELICITACIONES ${user.name}! Tu depósito ha sido APROBADO.\n\n` +
+    `✅ Tu cuenta está activa por 90 días.\n` +
+    `🔑 Tu código de referido es: *${referralCode}*\n\n` +
+    `📱 Comparte tu enlace:\n` +
+    `https://conectaygana-live-1.onrender.com/?ref=${referralCode}\n\n` +
+    `💰 Gana RD 5,000 por cada 5 clientes.\n` +
+    `📌 No hay límite para ganar.\n\n` +
+    `📲 Activa notificaciones directas en Telegram: abre https://t.me/conectaganabot y escribe /Start.\n\n` +
+    `"Tú ayudas, otros crecen, todos ganamos."`
+);
             if (user.refereeCode) {
                 const referee = db.users.find(u => u.referralCode === user.refereeCode);
                 if (referee && referee.status === 'approved') {
@@ -735,6 +735,35 @@ app.get('/terms', (req, res) => {
 // ============================================
 // START SERVER
 // ============================================
+
+// ============================================
+// ADMIN: EXTEND USER EXPIRATION
+// ============================================
+app.post('/api/admin/extend-expiry', async (req, res) => {
+    try {
+        const { userId, daysToAdd = 90 } = req.body;
+        if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+        const db = readDB();
+        const user = db.users.find(u => u.id === userId);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const currentExpiry = user.expiresAt ? new Date(user.expiresAt) : new Date();
+        currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
+        user.expiresAt = currentExpiry.toISOString();
+        writeDB(db);
+
+        res.json({
+            success: true,
+            message: `Expiración extendida ${daysToAdd} días`,
+            newExpiry: user.expiresAt
+        });
+    } catch (error) {
+        console.error('Extend expiry error:', error);
+        res.status(500).json({ error: 'Error al extender la expiración' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log('========================================');
     console.log(`🚀 ${PROJECT_NAME} API`);
