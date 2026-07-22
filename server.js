@@ -145,10 +145,8 @@ app.post('/api/register', async (req, res) => {
         const { phone, name, comprobante, refereeCode, telegramChatId } = req.body;
         const email = req.body.email || `user_${Date.now()}@temp.com`;
 
-        // Log raw data
         console.log('📝 Registration received:', { phone, name, comprobante, refereeCode, telegramChatId });
 
-        // Sanitize phone: remove non-digits, take last 10 digits
         const cleanPhone = phone ? phone.replace(/\D/g, '').slice(-10) : '';
         console.log('📝 Cleaned phone:', cleanPhone);
         const finalPhone = cleanPhone;
@@ -235,10 +233,485 @@ app.post('/api/register', async (req, res) => {
 });
 
 // ============================================
-// THE REST OF YOUR ENDPOINTS (admin, payouts, etc.)
+// ADMIN: APPROVE/REJECT PAYMENT
 // ============================================
-// For brevity, the rest of the endpoints (approve, users, payouts, etc.) are the same as in the JSON version.
-// Make sure you copy the full file from the previous message.
+app.post('/api/admin/approve-payment', async (req, res) => {
+    try {
+        const { userId, action } = req.body;
+        const db = readDB();
+        const userIndex = db.users.findIndex(u => u.id === userId);
+        if (userIndex === -1) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const user = db.users[userIndex];
+
+        if (action === 'approve') {
+            let referralCode;
+            do {
+                referralCode = generateReferralCode();
+            } while (!isCodeUnique(referralCode, db));
+
+            user.status = 'approved';
+            user.referralCode = referralCode;
+            user.approvedAt = new Date().toISOString();
+
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + 90);
+            user.expiresAt = expiryDate.toISOString();
+
+            if (user.refereeCode) {
+                const referee = db.users.find(u => u.referralCode === user.refereeCode);
+                if (referee && referee.status === 'approved') {
+                    referee.pendingCustomers = Math.max((referee.pendingCustomers || 0) - 1, 0);
+                }
+            }
+
+            writeDB(db);
+
+            await sendNotification(user.phone,
+                `🎉 ¡FELICITACIONES ${user.name}! Tu depósito ha sido APROBADO.\n\n` +
+                `✅ Tu cuenta está activa por 90 días.\n` +
+                `🔑 Tu código de referido es: *${referralCode}*\n\n` +
+                `📱 Comparte tu enlace:\n` +
+                `https://conectaygana-live-1.onrender.com/?ref=${referralCode}\n\n` +
+                `💰 Gana RD 5,000 por cada 5 clientes.\n` +
+                `📌 No hay límite para ganar.\n\n` +
+                `"Tú ayudas, otros crecen, todos ganamos."`
+            );
+
+            if (user.refereeCode) {
+                const referee = db.users.find(u => u.referralCode === user.refereeCode);
+                if (referee && referee.status === 'approved') {
+                    referee.totalCustomers += 1;
+                    referee.activeCustomers += 1;
+                    writeDB(db);
+
+                    await sendNotification(referee.phone,
+                        `🎉 Hola ${referee.name}, ¡nuevo cliente APROBADO!\n\n` +
+                        `👤 ${user.name} ha sido confirmado.\n` +
+                        `📊 Ahora tienes ${referee.totalCustomers} clientes totales.\n` +
+                        `💰 ${referee.activeCustomers} clientes activos.\n\n` +
+                        `🏆 Gana RD 5,000 al llegar a 5 clientes.`
+                    );
+
+                    if (referee.activeCustomers > 0 && referee.activeCustomers % 5 === 0) {
+                        const milestone = Math.floor(referee.activeCustomers / 5);
+                        const existingPayout = db.payouts.find(p =>
+                            p.refereePhone === referee.phone &&
+                            p.milestone === milestone &&
+                            p.status === 'pending'
+                        );
+                        if (!existingPayout) {
+                            const newPayout = {
+                                id: shortid.generate(),
+                                refereePhone: referee.phone,
+                                refereeName: referee.name,
+                                milestone: milestone,
+                                amount: 5000,
+                                status: 'pending',
+                                bankingDetails: referee.bankingDetails || null,
+                                createdAt: new Date().toISOString(),
+                                completedAt: null,
+                                transactionNumber: null,
+                                transactionDate: null,
+                                adminNotes: null
+                            };
+                            db.payouts.push(newPayout);
+                            writeDB(db);
+
+                            await sendNotification(referee.phone,
+                                `💰 Hola ${referee.name}, ¡FELICITACIONES! Has alcanzado ${referee.activeCustomers} clientes.\n\n` +
+                                `💵 Tienes un pago pendiente de RD 5,000.\n` +
+                                `⏰ El administrador procesará tu pago en 2 días hábiles.\n\n` +
+                                `🏆 Sigue compartiendo para ganar más.`
+                            );
+                        }
+                    }
+                }
+            }
+
+        } else if (action === 'reject') {
+            user.status = 'rejected';
+            writeDB(db);
+
+            await sendNotification(user.phone,
+                `❌ Hola ${user.name}, tu depósito ha sido RECHAZADO.\n\n` +
+                `📋 Comprobante #${user.comprobante} no fue aprobado.\n` +
+                `📌 Motivo: El comprobante no coincide con nuestros registros.\n\n` +
+                `🔄 Puedes intentar nuevamente con un nuevo comprobante.`
+            );
+        }
+
+        res.json({
+            success: true,
+            message: `Pago ${action === 'approve' ? 'aprobado' : 'rechazado'} exitosamente`,
+            userStatus: user.status
+        });
+
+    } catch (error) {
+        console.error('Admin approval error:', error);
+        res.status(500).json({ error: 'Error al procesar la aprobación' });
+    }
+});
+
+// ============================================
+// ADMIN: UPDATE USER PHONE
+// ============================================
+app.post('/api/admin/update-user', async (req, res) => {
+    try {
+        const { userId, phone } = req.body;
+        if (!userId || !phone) {
+            return res.status(400).json({ error: 'userId and phone are required' });
+        }
+        const db = readDB();
+        const user = db.users.find(u => u.id === userId);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        if (db.users.some(u => u.phone === phone && u.id !== userId)) {
+            return res.status(400).json({ error: 'Este número ya está registrado por otro usuario' });
+        }
+        user.phone = phone;
+        writeDB(db);
+        res.json({ success: true, message: 'Número actualizado correctamente', user });
+    } catch (error) {
+        console.error('Update user error:', error);
+        res.status(500).json({ error: 'Error al actualizar el usuario' });
+    }
+});
+
+// ============================================
+// ADMIN: UPDATE REFEREE CODE
+// ============================================
+app.post('/api/admin/update-referee', async (req, res) => {
+    try {
+        const { userId, refereeCode } = req.body;
+        if (!userId || !refereeCode) {
+            return res.status(400).json({ error: 'userId and refereeCode are required' });
+        }
+        const db = readDB();
+        const user = db.users.find(u => u.id === userId);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        const refereeExists = db.users.some(u => u.referralCode === refereeCode && u.status === 'approved');
+        if (!refereeExists) {
+            return res.status(400).json({ error: 'El código de referido no existe o no está aprobado' });
+        }
+        user.refereeCode = refereeCode;
+        writeDB(db);
+        res.json({ success: true, message: 'Código de referido actualizado', user });
+    } catch (error) {
+        console.error('Update referee error:', error);
+        res.status(500).json({ error: 'Error al actualizar código de referido' });
+    }
+});
+
+// ============================================
+// GET USER BY ID
+// ============================================
+app.get('/api/admin/user/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = readDB();
+        const user = db.users.find(u => u.id === id);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================
+// GET USER DASHBOARD
+// ============================================
+app.get('/api/user/:phone', (req, res) => {
+    try {
+        const { phone } = req.params;
+        const db = readDB();
+        const user = db.users.find(u => u.phone === phone);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        res.json({
+            name: user.name,
+            phone: user.phone,
+            status: user.status,
+            referralCode: user.referralCode,
+            telegramChatId: user.telegramChatId || null,
+            totalCustomers: user.totalCustomers || 0,
+            activeCustomers: user.activeCustomers || 0,
+            pendingCustomers: user.pendingCustomers || 0,
+            totalPaid: user.totalPaid || 0,
+            expiresAt: user.expiresAt,
+            createdAt: user.createdAt,
+            bankingDetails: user.bankingDetails || null,
+            daysRemaining: user.expiresAt ?
+                Math.ceil((new Date(user.expiresAt) - new Date()) / (1000 * 60 * 60 * 24)) : null
+        });
+    } catch (error) {
+        console.error('Dashboard error:', error);
+        res.status(500).json({ error: 'Error al obtener datos del usuario' });
+    }
+});
+
+// ============================================
+// UPDATE TELEGRAM CHAT ID
+// ============================================
+app.post('/api/user/update-telegram', async (req, res) => {
+    try {
+        const { phone, telegramChatId } = req.body;
+        if (!phone || !telegramChatId) {
+            return res.status(400).json({ error: 'Phone and telegramChatId are required' });
+        }
+        const db = readDB();
+        const user = db.users.find(u => u.phone === phone);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        user.telegramChatId = telegramChatId;
+        writeDB(db);
+        res.json({ success: true, message: 'Telegram linked successfully' });
+    } catch (error) {
+        console.error('Update telegram error:', error);
+        res.status(500).json({ error: 'Error al actualizar Telegram' });
+    }
+});
+
+// ============================================
+// GET REFERRED USERS
+// ============================================
+app.get('/api/user/:phone/referrals', (req, res) => {
+    try {
+        const { phone } = req.params;
+        const db = readDB();
+        const referee = db.users.find(u => u.phone === phone);
+        if (!referee) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const referrals = db.users.filter(u =>
+            u.refereeCode === referee.referralCode && u.phone !== phone
+        );
+        const referralList = referrals.map(u => ({
+            name: u.name,
+            phone: u.phone,
+            status: u.status,
+            createdAt: u.createdAt,
+            comprobante: u.comprobante
+        }));
+
+        res.json({ count: referralList.length, referrals: referralList });
+    } catch (error) {
+        console.error('Referrals error:', error);
+        res.status(500).json({ error: 'Error al obtener referidos' });
+    }
+});
+
+// ============================================
+// GET PAYOUT STATS
+// ============================================
+app.get('/api/user/:phone/payouts', (req, res) => {
+    try {
+        const { phone } = req.params;
+        const db = readDB();
+        const user = db.users.find(u => u.phone === phone);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const userPayouts = db.payouts.filter(p => p.refereePhone === phone);
+        const totalPaid = userPayouts
+            .filter(p => p.status === 'completed')
+            .reduce((sum, p) => sum + p.amount, 0);
+
+        const nextMilestone = Math.floor((user.activeCustomers || 0) / 5);
+        const paidMilestones = userPayouts
+            .filter(p => p.status === 'completed')
+            .map(p => p.milestone);
+
+        const pendingMilestones = [];
+        for (let i = 1; i <= nextMilestone; i++) {
+            if (!paidMilestones.includes(i)) pendingMilestones.push(i);
+        }
+
+        res.json({
+            totalPaid,
+            payouts: userPayouts,
+            pendingMilestones,
+            nextPayoutAmount: pendingMilestones.length > 0 ? 5000 * pendingMilestones.length : 0
+        });
+    } catch (error) {
+        console.error('Payout stats error:', error);
+        res.status(500).json({ error: 'Error al obtener estadísticas de pago' });
+    }
+});
+
+// ============================================
+// ADMIN: CREATE PAYOUT
+// ============================================
+app.post('/api/admin/create-payout', async (req, res) => {
+    try {
+        const { refereePhone, milestone } = req.body;
+        const db = readDB();
+        const referee = db.users.find(u => u.phone === refereePhone);
+        if (!referee) return res.status(404).json({ error: 'Referido no encontrado' });
+
+        const existing = db.payouts.find(p =>
+            p.refereePhone === refereePhone && p.milestone === milestone && p.status === 'pending'
+        );
+        if (existing) return res.status(400).json({ error: 'Ya existe un pago pendiente para este hito' });
+
+        const newPayout = {
+            id: shortid.generate(),
+            refereePhone,
+            refereeName: referee.name,
+            milestone,
+            amount: 5000,
+            status: 'pending',
+            bankingDetails: referee.bankingDetails || null,
+            createdAt: new Date().toISOString(),
+            completedAt: null,
+            transactionNumber: null,
+            transactionDate: null,
+            adminNotes: null
+        };
+        db.payouts.push(newPayout);
+        writeDB(db);
+
+        res.json({ success: true, message: 'Pago creado exitosamente', payout: newPayout });
+    } catch (error) {
+        console.error('Create payout error:', error);
+        res.status(500).json({ error: 'Error al crear el pago' });
+    }
+});
+
+// ============================================
+// ADMIN: COMPLETE PAYOUT
+// ============================================
+app.post('/api/admin/complete-payout', async (req, res) => {
+    try {
+        const { payoutId, transactionNumber, transactionDate } = req.body;
+        if (!payoutId || !transactionNumber || !transactionDate) {
+            return res.status(400).json({ error: 'Todos los campos son requeridos' });
+        }
+
+        const db = readDB();
+        const payoutIndex = db.payouts.findIndex(p => p.id === payoutId);
+        if (payoutIndex === -1) return res.status(404).json({ error: 'Pago no encontrado' });
+
+        const payout = db.payouts[payoutIndex];
+        payout.status = 'completed';
+        payout.completedAt = new Date().toISOString();
+        payout.transactionNumber = transactionNumber;
+        payout.transactionDate = transactionDate;
+
+        const referee = db.users.find(u => u.phone === payout.refereePhone);
+        if (referee) referee.totalPaid = (referee.totalPaid || 0) + payout.amount;
+
+        writeDB(db);
+
+        await sendNotification(payout.refereePhone,
+            `💰 ¡FELICITACIONES ${referee ? referee.name : ''}! Tu pago ha sido COMPLETADO.\n\n` +
+            `💵 Monto: RD ${payout.amount.toLocaleString()}\n` +
+            `📋 Transacción: ${transactionNumber}\n` +
+            `📅 Fecha: ${new Date(transactionDate).toLocaleDateString()}\n\n` +
+            `✅ Has alcanzado ${payout.milestone * 5} clientes.\n` +
+            `🏆 Sigue compartiendo para ganar más.\n\n` +
+            `"Tú ayudas, otros crecen, todos ganamos."`
+        );
+
+        res.json({ success: true, message: 'Pago completado exitosamente', payout });
+    } catch (error) {
+        console.error('Complete payout error:', error);
+        res.status(500).json({ error: 'Error al completar el pago' });
+    }
+});
+
+// ============================================
+// ADMIN: PENDING PAYOUTS
+// ============================================
+app.get('/api/admin/pending-payouts', (req, res) => {
+    try {
+        const db = readDB();
+        const pending = db.payouts.filter(p => p.status === 'pending');
+        res.json({ count: pending.length, payouts: pending });
+    } catch (error) {
+        console.error('Pending payouts error:', error);
+        res.status(500).json({ error: 'Error al obtener pagos pendientes' });
+    }
+});
+
+// ============================================
+// UPDATE BANKING DETAILS
+// ============================================
+app.post('/api/user/update-banking', async (req, res) => {
+    try {
+        const { phone, bankName, accountNumber, accountType } = req.body;
+        if (!phone || !bankName || !accountNumber || !accountType) {
+            return res.status(400).json({ error: 'Todos los campos bancarios son requeridos' });
+        }
+        const db = readDB();
+        const user = db.users.find(u => u.phone === phone);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        user.bankingDetails = { bankName, accountNumber, accountType, updatedAt: new Date().toISOString() };
+        writeDB(db);
+        res.json({ success: true, message: 'Datos bancarios actualizados correctamente' });
+    } catch (error) {
+        console.error('Banking update error:', error);
+        res.status(500).json({ error: 'Error al actualizar datos bancarios' });
+    }
+});
+
+// ============================================
+// ADMIN: PENDING APPROVALS
+// ============================================
+app.get('/api/admin/pending', (req, res) => {
+    try {
+        const db = readDB();
+        const pending = db.users.filter(u => u.status === 'pending');
+        res.json({ count: pending.length, users: pending });
+    } catch (error) {
+        console.error('Pending approvals error:', error);
+        res.status(500).json({ error: 'Error al obtener aprobaciones pendientes', details: error.message });
+    }
+});
+
+// ============================================
+// ADMIN: ALL USERS
+// ============================================
+app.get('/api/admin/users', (req, res) => {
+    try {
+        const db = readDB();
+        res.json({ total: db.users.length, users: db.users });
+    } catch (error) {
+        console.error('Users list error:', error);
+        res.status(500).json({ error: 'Error al obtener lista de usuarios', details: error.message });
+    }
+});
+
+// ============================================
+// EXPIRY CHECK (runs every 6 hours)
+// ============================================
+async function checkExpiringUsers() {
+    const db = readDB();
+    const now = new Date();
+
+    for (const user of db.users) {
+        if (user.status !== 'approved' || !user.expiresAt) continue;
+        const expiryDate = new Date(user.expiresAt);
+        const daysRemaining = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+
+        if (daysRemaining === 1) {
+            await sendNotification(user.phone,
+                `⚠️ Hola ${user.name}, ¡ATENCIÓN! Tu cuenta expira mañana.\n\n` +
+                `📅 Fecha de expiración: ${expiryDate.toLocaleDateString()}\n` +
+                `📊 Tienes ${user.activeCustomers} clientes activos.\n\n` +
+                `🔄 Si tienes 3+ clientes en el sistema,\n` +
+                `contacta al administrador para reactivación.\n\n` +
+                `📌 De lo contrario, perderás tus referidos.`
+            );
+        }
+
+        if (daysRemaining <= 3 && user.pendingCustomers >= 3) {
+            console.log(`⚠️ User ${user.phone} (${user.name}) has ${user.pendingCustomers} pending clients and expires in ${daysRemaining} days`);
+        }
+    }
+}
+
+setInterval(checkExpiringUsers, 6 * 60 * 60 * 1000);
 
 // ============================================
 // STATIC PAGES
