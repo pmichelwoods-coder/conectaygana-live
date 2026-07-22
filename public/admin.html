@@ -116,7 +116,7 @@
 
     <script>
         // ============================================
-        // ADMIN – v4.1 – 2026-07-21
+        // ADMIN – v4.2 – 2026-07-22
         // ============================================
         const API_BASE = '';
 
@@ -147,26 +147,29 @@
                 loading.classList.remove('hidden');
                 content.classList.add('hidden');
 
-                // Fetch pending approvals
+                console.log('📡 Fetching pending approvals...');
                 const pendingRes = await fetch(`${API_BASE}/api/admin/pending`);
                 if (!pendingRes.ok) throw new Error('Error al obtener pendientes');
                 const pendingData = await pendingRes.json();
+                console.log('📡 Pending data:', pendingData);
 
-                // Fetch users
+                console.log('📡 Fetching all users...');
                 const usersRes = await fetch(`${API_BASE}/api/admin/users`);
                 if (!usersRes.ok) throw new Error('Error al obtener usuarios');
                 const usersData = await usersRes.json();
+                console.log('📡 Users data:', usersData);
 
-                // Fetch pending payouts
+                console.log('📡 Fetching pending payouts...');
                 const payoutsRes = await fetch(`${API_BASE}/api/admin/pending-payouts`);
                 if (!payoutsRes.ok) throw new Error('Error al obtener pagos pendientes');
                 const payoutsData = await payoutsRes.json();
+                console.log('📡 Payouts data:', payoutsData);
 
                 render(pendingData.users, usersData.users, payoutsData.payouts);
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
             } catch (err) {
-                console.error('Error:', err);
+                console.error('❌ Error:', err);
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
                 document.getElementById('pending-message').innerHTML =
@@ -175,6 +178,10 @@
         }
 
         function render(pendingUsers, allUsers, pendingPayouts) {
+            console.log('📊 Rendering pending users:', pendingUsers);
+            console.log('📊 Rendering all users:', allUsers);
+            console.log('📊 Rendering payouts:', pendingPayouts);
+
             // ---------- Pending Approvals ----------
             if (!pendingUsers || pendingUsers.length === 0) {
                 pendingTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay aprobaciones pendientes.</td></tr>';
@@ -197,13 +204,14 @@
             }
 
             // ---------- All Users ----------
-            // Build pending amount map per user
             const pendingMap = {};
-            pendingPayouts.forEach(p => {
-                const phone = p.refereePhone;
-                if (!pendingMap[phone]) pendingMap[phone] = 0;
-                pendingMap[phone] += p.amount;
-            });
+            if (pendingPayouts) {
+                pendingPayouts.forEach(p => {
+                    const phone = p.refereePhone;
+                    if (!pendingMap[phone]) pendingMap[phone] = 0;
+                    pendingMap[phone] += p.amount;
+                });
+            }
 
             if (!allUsers || allUsers.length === 0) {
                 usersTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>';
@@ -266,7 +274,7 @@
                 const data = await res.json();
                 if (res.ok && data.success) {
                     alert(`✅ Usuario ${action === 'approve' ? 'aprobado' : 'rechazado'} exitosamente.`);
-                    fetchAllData(); // refresh all tables
+                    fetchAllData();
                 } else {
                     alert('❌ Error: ' + (data.error || 'No se pudo procesar la solicitud.'));
                 }
