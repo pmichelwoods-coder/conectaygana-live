@@ -1,5 +1,5 @@
-// server.js - v5.3 - 2026-07-23
-// Conecta Y Gana RD - Telegram + JSON storage + Admin user support + PIN security
+// server.js - v5.4 - 2026-07-23
+// Conecta Y Gana RD - Telegram + JSON storage + Admin user support + PIN security + Delete/Edit users
 
 require('dotenv').config();
 const express = require('express');
@@ -168,7 +168,6 @@ app.post('/api/verify-pin', (req, res) => {
             return res.status(401).json({ error: 'PIN incorrecto' });
         }
 
-        // Return user data (without sensitive fields)
         res.json({
             success: true,
             user: {
@@ -222,6 +221,58 @@ app.post('/api/admin/reset-pin', (req, res) => {
 });
 
 // ============================================
+// ADMIN: DELETE USER
+// ============================================
+app.delete('/api/admin/user/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = readDB();
+        const userIndex = db.users.findIndex(u => u.id === id);
+        if (userIndex === -1) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        // Prevent deleting the main admin (Paul)
+        if (id === 'Deyfs68gw') {
+            return res.status(403).json({ error: 'No se puede eliminar al administrador principal' });
+        }
+
+        const user = db.users[userIndex];
+        db.users.splice(userIndex, 1);
+
+        // Remove payouts and referrals linked to this user
+        db.payouts = db.payouts.filter(p => p.refereePhone !== user.phone);
+        db.referrals = db.referrals.filter(r => r.refereePhone !== user.phone);
+
+        writeDB(db);
+        res.json({ success: true, message: 'Usuario eliminado correctamente' });
+    } catch (error) {
+        console.error('Delete user error:', error);
+        res.status(500).json({ error: 'Error al eliminar usuario' });
+    }
+});
+
+// ============================================
+// ADMIN: EDIT USER (name, phone)
+// ============================================
+app.put('/api/admin/user/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, phone } = req.body;
+        const db = readDB();
+        const user = db.users.find(u => u.id === id);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        if (name) user.name = name;
+        if (phone) user.phone = phone;
+        writeDB(db);
+
+        res.json({ success: true, message: 'Usuario actualizado', user });
+    } catch (error) {
+        console.error('Update user error:', error);
+        res.status(500).json({ error: 'Error al actualizar usuario' });
+    }
+});
+
+// ============================================
 // REGISTER USER (with PIN)
 // ============================================
 app.post('/api/register', async (req, res) => {
@@ -262,7 +313,7 @@ app.post('/api/register', async (req, res) => {
             status: 'pending',
             referralCode: null,
             telegramChatId: telegramChatId || null,
-            pin: pin,  // NEW: 4-digit PIN
+            pin: pin,
             createdAt: new Date().toISOString(),
             approvedAt: null,
             expiresAt: null,
@@ -320,7 +371,7 @@ app.post('/api/register', async (req, res) => {
             message: 'Depósito recibido. Está en revisión (48 horas).',
             userId: newUser.id,
             status: 'pending',
-            pin: pin  // return pin so user sees it in the alert
+            pin: pin
         });
 
     } catch (error) {
@@ -595,7 +646,7 @@ app.post('/api/admin/extend-expiry', async (req, res) => {
 });
 
 // ============================================
-// GET USER BY ID (for admin)
+// GET USER BY ID
 // ============================================
 app.get('/api/admin/user/:id', (req, res) => {
     try {
@@ -610,7 +661,7 @@ app.get('/api/admin/user/:id', (req, res) => {
 });
 
 // ============================================
-// GET USER DASHBOARD (deprecated – use verify-pin instead)
+// GET USER DASHBOARD
 // ============================================
 app.get('/api/user/:phone', (req, res) => {
     try {
@@ -633,7 +684,7 @@ app.get('/api/user/:phone', (req, res) => {
             createdAt: user.createdAt,
             bankingDetails: user.bankingDetails || null,
             skipReferralEarnings: user.skipReferralEarnings || false,
-            pin: user.pin || null, // Only for admin use; we'll expose it in admin panel
+            pin: user.pin || null,
             daysRemaining: user.expiresAt ?
                 Math.ceil((new Date(user.expiresAt) - new Date()) / (1000 * 60 * 60 * 24)) : null
         });
@@ -950,8 +1001,10 @@ app.listen(PORT, () => {
     console.log(`   • POST /api/admin/set-referral-code`);
     console.log(`   • POST /api/admin/make-admin-user`);
     console.log(`   • POST /api/admin/extend-expiry`);
-    console.log(`   • POST /api/admin/reset-pin (NEW)`);
-    console.log(`   • POST /api/verify-pin (NEW)`);
+    console.log(`   • POST /api/admin/reset-pin`);
+    console.log(`   • DELETE /api/admin/user/:id (NEW)`);
+    console.log(`   • PUT /api/admin/user/:id (NEW)`);
+    console.log(`   • POST /api/verify-pin`);
     console.log(`   • GET  /api/admin/user/:id`);
     console.log(`   • GET  /api/user/:phone`);
     console.log(`   • POST /api/user/update-telegram`);

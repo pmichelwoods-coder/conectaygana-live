@@ -1,4 +1,4 @@
-<!-- admin.html - v4.8 - 2026-07-23 -->
+<!-- admin.html - v4.9 - 2026-07-23 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -134,7 +134,7 @@
 
     <script>
         // ============================================
-        // ADMIN – v4.8 – 2026-07-23
+        // ADMIN – v4.9 – 2026-07-23
         // ============================================
         const API_BASE = '';
 
@@ -249,7 +249,9 @@
                             <a href="/dashboard?phone=${u.phone}" target="_blank" class="btn btn-sm btn-info">📊 Ver</a>
                         </td>
                         <td>
-                            <button class="btn btn-warning btn-sm" onclick="extendExpiry('${u.id}')">+90 días</button>
+                            <button class="btn btn-sm btn-warning" onclick="editUser('${u.id}')">✏️</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')">🗑️</button>
+                            <button class="btn btn-sm btn-success" onclick="extendExpiry('${u.id}')">+90d</button>
                         </td>
                     </tr>`;
                 });
@@ -346,6 +348,69 @@
                     fetchAllData();
                 } else {
                     alert('❌ Error: ' + (data.error || 'No se pudo restablecer.'));
+                }
+            } catch (err) {
+                alert('❌ Error de conexión: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // DELETE USER
+        // ============================================
+        async function deleteUser(userId) {
+            if (userId === 'Deyfs68gw') {
+                alert('No puedes eliminar al administrador principal.');
+                return;
+            }
+            if (!confirm('¿Eliminar este usuario permanentemente? Esta acción no se puede deshacer.')) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/user/${userId}`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert('✅ Usuario eliminado.');
+                    fetchAllData();
+                } else {
+                    alert('❌ Error: ' + (data.error || 'No se pudo eliminar.'));
+                }
+            } catch (err) {
+                alert('❌ Error de conexión: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // EDIT USER
+        // ============================================
+        async function editUser(userId) {
+            const newName = prompt('Ingresa el nuevo nombre (o cancelar para mantener):');
+            if (newName === null) return;
+
+            const newPhone = prompt('Ingresa el nuevo número de teléfono (10 dígitos, o cancelar para mantener):');
+            if (newPhone === null) return;
+
+            const payload = {};
+            if (newName.trim()) payload.name = newName.trim();
+            if (newPhone.trim()) payload.phone = newPhone.trim();
+
+            if (Object.keys(payload).length === 0) {
+                alert('No se realizaron cambios.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/user/${userId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert('✅ Usuario actualizado.');
+                    fetchAllData();
+                } else {
+                    alert('❌ Error: ' + (data.error || 'No se pudo actualizar.'));
                 }
             } catch (err) {
                 alert('❌ Error de conexión: ' + err.message);
