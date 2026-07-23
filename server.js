@@ -1,4 +1,6 @@
-// server.js – JSON file storage (v5.0 – 2026-07-22)
+// server.js - v5.1 - 2026-07-23
+// Conecta Y Gana RD - Telegram + JSON storage + Admin user support
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -21,16 +23,20 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const DEFAULT_CHAT_ID = process.env.TELEGRAM_DEFAULT_CHAT_ID;
 const SKIP_TELEGRAM = process.env.SKIP_TELEGRAM === 'true' ? true : false;
 const PROJECT_NAME = process.env.PROJECT_NAME || 'Conecta Y Gana RD 5 Mil';
-const DB_FILE = path.join('/data', 'database.json');
+const DB_FILE = path.join('/data', 'database.json');  // persistent disk
 
 // ============================================
 // DATABASE HELPERS
 // ============================================
 function readDB() {
     try {
+        console.log(`📖 Reading database from: ${DB_FILE}`);
         const data = fs.readFileSync(DB_FILE, 'utf8');
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        console.log(`📖 Database read successfully, users: ${parsed.users.length}`);
+        return parsed;
     } catch (error) {
+        console.error(`❌ Failed to read database: ${error.message}`);
         const defaultData = {
             users: [],
             payments: [],
@@ -45,11 +51,13 @@ function readDB() {
 
 function writeDB(data) {
     try {
+        console.log(`💾 Writing database to: ${DB_FILE}`);
+        console.log(`💾 Users count: ${data.users.length}`);
         fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
         console.log('✅ Database saved successfully');
     } catch (error) {
-        console.error('❌ Failed to write database:', error.message);
-        console.error('❌ File path:', DB_FILE);
+        console.error(`❌ Failed to write database: ${error.message}`);
+        console.error(`❌ File path: ${DB_FILE}`);
         throw error;
     }
 }
@@ -184,20 +192,27 @@ app.post('/api/register', async (req, res) => {
             pendingCustomers: 0,
             totalPaid: 0,
             bankingDetails: null,
-            deviceId: null
+            deviceId: null,
+            skipReferralEarnings: false   // NEW: admin users can be set to true
         };
 
         db.users.push(newUser);
         writeDB(db);
 
+        // Update referee's pending count if referee exists and is approved (skip if admin)
         if (refereeCode) {
             const referee = db.users.find(u => u.referralCode === refereeCode);
             if (referee && referee.status === 'approved') {
-                referee.pendingCustomers = (referee.pendingCustomers || 0) + 1;
-                writeDB(db);
+                if (!referee.skipReferralEarnings) {
+                    referee.pendingCustomers = (referee.pendingCustomers || 0) + 1;
+                    writeDB(db);
+                } else {
+                    console.log(`⏭️ Skipping pending increment for admin referee ${referee.phone}`);
+                }
             }
         }
 
+        // Send Telegram notification (always, even for admin)
         await sendNotification(finalPhone,
             `📋 Hola ${name}, hemos recibido tu depósito de RD 1,250.\n\n` +
             `🔍 Tu comprobante #${comprobante} está en revisión.\n` +
@@ -258,73 +273,86 @@ app.post('/api/admin/approve-payment', async (req, res) => {
             expiryDate.setDate(expiryDate.getDate() + 90);
             user.expiresAt = expiryDate.toISOString();
 
+            // Decrease pending count of referee (if any, and only if referee is not admin)
             if (user.refereeCode) {
                 const referee = db.users.find(u => u.referralCode === user.refereeCode);
                 if (referee && referee.status === 'approved') {
-                    referee.pendingCustomers = Math.max((referee.pendingCustomers || 0) - 1, 0);
+                    if (!referee.skipReferralEarnings) {
+                        referee.pendingCustomers = Math.max((referee.pendingCustomers || 0) - 1, 0);
+                    } else {
+                        console.log(`⏭️ Skipping pending decrease for admin referee ${referee.phone}`);
+                    }
                 }
             }
 
             writeDB(db);
 
+            // Send approval notification
             await sendNotification(user.phone,
-    `🎉 ¡FELICITACIONES ${user.name}! Tu depósito ha sido APROBADO.\n\n` +
-    `✅ Tu cuenta está activa por 90 días.\n` +
-    `🔑 Tu código de referido es: *${referralCode}*\n\n` +
-    `📱 Comparte tu enlace:\n` +
-    `https://conectaygana-live-1.onrender.com/?ref=${referralCode}\n\n` +
-    `💰 Gana RD 5,000 por cada 5 clientes.\n` +
-    `📌 No hay límite para ganar.\n\n` +
-    `📲 Activa notificaciones directas en Telegram: abre https://t.me/conectaganabot y escribe /Start.\n\n` +
-    `"Tú ayudas, otros crecen, todos ganamos."`
-);
+                `🎉 ¡FELICITACIONES ${user.name}! Tu depósito ha sido APROBADO.\n\n` +
+                `✅ Tu cuenta está activa por 90 días.\n` +
+                `🔑 Tu código de referido es: *${referralCode}*\n\n` +
+                `📱 Comparte tu enlace:\n` +
+                `https://conectaygana-live-1.onrender.com/?ref=${referralCode}\n\n` +
+                `💰 Gana RD 5,000 por cada 5 clientes.\n` +
+                `📌 No hay límite para ganar.\n\n` +
+                `📲 Activa notificaciones directas en Telegram: abre https://t.me/conectaganabot y escribe /Start.\n\n` +
+                `"Tú ayudas, otros crecen, todos ganamos."`
+            );
+
+            // Notify referee and update their counts (skip if admin)
             if (user.refereeCode) {
                 const referee = db.users.find(u => u.referralCode === user.refereeCode);
                 if (referee && referee.status === 'approved') {
-                    referee.totalCustomers += 1;
-                    referee.activeCustomers += 1;
-                    writeDB(db);
+                    if (!referee.skipReferralEarnings) {
+                        referee.totalCustomers += 1;
+                        referee.activeCustomers += 1;
+                        writeDB(db);
 
-                    await sendNotification(referee.phone,
-                        `🎉 Hola ${referee.name}, ¡nuevo cliente APROBADO!\n\n` +
-                        `👤 ${user.name} ha sido confirmado.\n` +
-                        `📊 Ahora tienes ${referee.totalCustomers} clientes totales.\n` +
-                        `💰 ${referee.activeCustomers} clientes activos.\n\n` +
-                        `🏆 Gana RD 5,000 al llegar a 5 clientes.`
-                    );
-
-                    if (referee.activeCustomers > 0 && referee.activeCustomers % 5 === 0) {
-                        const milestone = Math.floor(referee.activeCustomers / 5);
-                        const existingPayout = db.payouts.find(p =>
-                            p.refereePhone === referee.phone &&
-                            p.milestone === milestone &&
-                            p.status === 'pending'
+                        await sendNotification(referee.phone,
+                            `🎉 Hola ${referee.name}, ¡nuevo cliente APROBADO!\n\n` +
+                            `👤 ${user.name} ha sido confirmado.\n` +
+                            `📊 Ahora tienes ${referee.totalCustomers} clientes totales.\n` +
+                            `💰 ${referee.activeCustomers} clientes activos.\n\n` +
+                            `🏆 Gana RD 5,000 al llegar a 5 clientes.`
                         );
-                        if (!existingPayout) {
-                            const newPayout = {
-                                id: shortid.generate(),
-                                refereePhone: referee.phone,
-                                refereeName: referee.name,
-                                milestone: milestone,
-                                amount: 5000,
-                                status: 'pending',
-                                bankingDetails: referee.bankingDetails || null,
-                                createdAt: new Date().toISOString(),
-                                completedAt: null,
-                                transactionNumber: null,
-                                transactionDate: null,
-                                adminNotes: null
-                            };
-                            db.payouts.push(newPayout);
-                            writeDB(db);
 
-                            await sendNotification(referee.phone,
-                                `💰 Hola ${referee.name}, ¡FELICITACIONES! Has alcanzado ${referee.activeCustomers} clientes.\n\n` +
-                                `💵 Tienes un pago pendiente de RD 5,000.\n` +
-                                `⏰ El administrador procesará tu pago en 2 días hábiles.\n\n` +
-                                `🏆 Sigue compartiendo para ganar más.`
+                        // Check milestone for referee (only if not admin)
+                        if (referee.activeCustomers > 0 && referee.activeCustomers % 5 === 0) {
+                            const milestone = Math.floor(referee.activeCustomers / 5);
+                            const existingPayout = db.payouts.find(p =>
+                                p.refereePhone === referee.phone &&
+                                p.milestone === milestone &&
+                                p.status === 'pending'
                             );
+                            if (!existingPayout) {
+                                const newPayout = {
+                                    id: shortid.generate(),
+                                    refereePhone: referee.phone,
+                                    refereeName: referee.name,
+                                    milestone: milestone,
+                                    amount: 5000,
+                                    status: 'pending',
+                                    bankingDetails: referee.bankingDetails || null,
+                                    createdAt: new Date().toISOString(),
+                                    completedAt: null,
+                                    transactionNumber: null,
+                                    transactionDate: null,
+                                    adminNotes: null
+                                };
+                                db.payouts.push(newPayout);
+                                writeDB(db);
+
+                                await sendNotification(referee.phone,
+                                    `💰 Hola ${referee.name}, ¡FELICITACIONES! Has alcanzado ${referee.activeCustomers} clientes.\n\n` +
+                                    `💵 Tienes un pago pendiente de RD 5,000.\n` +
+                                    `⏰ El administrador procesará tu pago en 2 días hábiles.\n\n` +
+                                    `🏆 Sigue compartiendo para ganar más.`
+                                );
+                            }
                         }
+                    } else {
+                        console.log(`⏭️ Skipping referee earnings for admin ${referee.phone}`);
                     }
                 }
             }
@@ -407,6 +435,60 @@ app.post('/api/admin/update-referee', async (req, res) => {
 });
 
 // ============================================
+// ADMIN: MAKE USER ADMIN (skip earnings, no expiry)
+// ============================================
+app.post('/api/admin/make-admin-user', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+        const db = readDB();
+        const user = db.users.find(u => u.id === userId);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        user.skipReferralEarnings = true;
+        user.expiresAt = null; // no expiry
+        writeDB(db);
+
+        res.json({
+            success: true,
+            message: 'Usuario convertido a admin (sin earnings, sin expiración)'
+        });
+    } catch (error) {
+        console.error('Make admin error:', error);
+        res.status(500).json({ error: 'Error al convertir a admin' });
+    }
+});
+
+// ============================================
+// ADMIN: EXTEND USER EXPIRATION
+// ============================================
+app.post('/api/admin/extend-expiry', async (req, res) => {
+    try {
+        const { userId, daysToAdd = 90 } = req.body;
+        if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+        const db = readDB();
+        const user = db.users.find(u => u.id === userId);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const currentExpiry = user.expiresAt ? new Date(user.expiresAt) : new Date();
+        currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
+        user.expiresAt = currentExpiry.toISOString();
+        writeDB(db);
+
+        res.json({
+            success: true,
+            message: `Expiración extendida ${daysToAdd} días`,
+            newExpiry: user.expiresAt
+        });
+    } catch (error) {
+        console.error('Extend expiry error:', error);
+        res.status(500).json({ error: 'Error al extender la expiración' });
+    }
+});
+
+// ============================================
 // GET USER BY ID
 // ============================================
 app.get('/api/admin/user/:id', (req, res) => {
@@ -444,6 +526,7 @@ app.get('/api/user/:phone', (req, res) => {
             expiresAt: user.expiresAt,
             createdAt: user.createdAt,
             bankingDetails: user.bankingDetails || null,
+            skipReferralEarnings: user.skipReferralEarnings || false,
             daysRemaining: user.expiresAt ?
                 Math.ceil((new Date(user.expiresAt) - new Date()) / (1000 * 60 * 60 * 24)) : null
         });
@@ -599,7 +682,14 @@ app.post('/api/admin/complete-payout', async (req, res) => {
         payout.transactionDate = transactionDate;
 
         const referee = db.users.find(u => u.phone === payout.refereePhone);
-        if (referee) referee.totalPaid = (referee.totalPaid || 0) + payout.amount;
+        if (referee) {
+            // Only update totalPaid if the referee is not an admin
+            if (!referee.skipReferralEarnings) {
+                referee.totalPaid = (referee.totalPaid || 0) + payout.amount;
+            } else {
+                console.log(`⏭️ Skipping totalPaid update for admin ${referee.phone}`);
+            }
+        }
 
         writeDB(db);
 
@@ -735,42 +825,13 @@ app.get('/terms', (req, res) => {
 // ============================================
 // START SERVER
 // ============================================
-
-// ============================================
-// ADMIN: EXTEND USER EXPIRATION
-// ============================================
-app.post('/api/admin/extend-expiry', async (req, res) => {
-    try {
-        const { userId, daysToAdd = 90 } = req.body;
-        if (!userId) return res.status(400).json({ error: 'userId is required' });
-
-        const db = readDB();
-        const user = db.users.find(u => u.id === userId);
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        const currentExpiry = user.expiresAt ? new Date(user.expiresAt) : new Date();
-        currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
-        user.expiresAt = currentExpiry.toISOString();
-        writeDB(db);
-
-        res.json({
-            success: true,
-            message: `Expiración extendida ${daysToAdd} días`,
-            newExpiry: user.expiresAt
-        });
-    } catch (error) {
-        console.error('Extend expiry error:', error);
-        res.status(500).json({ error: 'Error al extender la expiración' });
-    }
-});
-
 app.listen(PORT, () => {
     console.log('========================================');
     console.log(`🚀 ${PROJECT_NAME} API`);
     console.log(`📱 Notification Provider: Telegram`);
     console.log(`🤖 Bot Token Set: ${TELEGRAM_BOT_TOKEN ? '✅ YES' : '❌ NO'}`);
     console.log(`👤 Default Chat ID: ${DEFAULT_CHAT_ID || '❌ NOT SET'}`);
-    console.log(`🗄️  Storage: JSON file (database.json)`);
+    console.log(`🗄️  Storage: JSON file (persistent disk)`);
     console.log('========================================');
     console.log('✅ ALL CREDENTIALS CONFIGURED!');
     console.log('========================================');
@@ -779,6 +840,8 @@ app.listen(PORT, () => {
     console.log(`   • POST /api/admin/approve-payment`);
     console.log(`   • POST /api/admin/update-user`);
     console.log(`   • POST /api/admin/update-referee`);
+    console.log(`   • POST /api/admin/make-admin-user (NEW)`);
+    console.log(`   • POST /api/admin/extend-expiry`);
     console.log(`   • GET  /api/admin/user/:id`);
     console.log(`   • GET  /api/user/:phone`);
     console.log(`   • POST /api/user/update-telegram`);
