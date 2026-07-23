@@ -1,4 +1,4 @@
-<!-- dashboard.html - v2.4 - 2026-07-22 -->
+<!-- dashboard.html - v2.5 - 2026-07-23 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -91,7 +91,7 @@
 
     <script>
         // ============================================
-        // DASHBOARD – v2.4 – 2026-07-22
+        // DASHBOARD – v2.5 – 2026-07-23
         // ============================================
         const API_BASE = '';
         const PHONE_KEY = 'dashboard_phone';
@@ -152,6 +152,10 @@
             const totalPagado = user.totalPaid || 0;
             const balance = totalAcumulado - totalPagado;
 
+            // --- FIX: Pending payout = only full 5,000 milestones ---
+            const totalEarnedFromMilestones = Math.floor(totalClients / 5) * 5000;
+            const pendingPayout = totalEarnedFromMilestones - totalPagado;
+
             document.getElementById('stat-clients').textContent = totalClients;
             document.getElementById('stat-paid').textContent = `RD$${totalPagado.toLocaleString()}`;
             document.getElementById('stat-pending').textContent = `RD$${balance.toLocaleString()}`;
@@ -160,11 +164,11 @@
             const code = user.referralCode || '';
             document.getElementById('referral-link').value = code ? `${baseUrl}/?ref=${code}` : '⚠️ Sin código aún';
 
-            // Show pending payout section if any
+            // Show pending payout section only if pendingPayout > 0
             const section = document.getElementById('payout-section');
-            if (balance > 0) {
+            if (pendingPayout > 0) {
                 section.style.display = 'block';
-                document.getElementById('pending-amount').textContent = `RD$${balance.toLocaleString()}`;
+                document.getElementById('pending-amount').textContent = `RD$${pendingPayout.toLocaleString()}`;
             } else {
                 section.style.display = 'none';
             }
