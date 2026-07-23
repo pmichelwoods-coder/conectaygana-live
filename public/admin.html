@@ -1,3 +1,4 @@
+<!-- admin.html - v4.5 - 2026-07-22 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -20,6 +21,8 @@
         .btn-danger { background: #d93025; }
         .btn-danger:hover { background: #b71c1c; }
         .btn-sm { padding: 4px 10px; font-size: 12px; margin: 2px; }
+        .btn-warning { background: #ea8600; }
+        .btn-warning:hover { background: #c96f00; }
         .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
         .status-pending { background: #fef7e0; color: #ea8600; }
         .status-approved { background: #e6f4ea; color: #1e8e3e; }
@@ -31,6 +34,9 @@
         .loading { text-align: center; padding: 40px; color: #5f6368; }
         .error-msg { background: #fce8e6; color: #d93025; padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
         .success-msg { background: #e6f4ea; color: #1e8e3e; padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
+        .progress-bar-bg { background: #e8eaed; border-radius: 4px; height: 6px; width: 60px; display: inline-block; vertical-align: middle; margin-left: 5px; }
+        .progress-bar-fill { background: #1a73e8; height: 6px; border-radius: 4px; transition: width 0.3s; }
+        .progress-text { font-size: 12px; color: #5f6368; }
     </style>
 </head>
 <body>
@@ -73,14 +79,16 @@
                             <th>Estado</th>
                             <th>Ref. Code</th>
                             <th>Clientes</th>
+                            <th>Progreso</th>
                             <th>Expira</th>
                             <th>Total Acumulado</th>
                             <th>Total Pagado</th>
                             <th>Balance</th>
+                            <th>Acción</th>
                         </tr>
                     </thead>
                     <tbody id="users-table-body">
-                        <tr><td colspan="9" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>
+                        <tr><td colspan="11" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -116,7 +124,7 @@
 
     <script>
         // ============================================
-        // ADMIN – v4.2 – 2026-07-22
+        // ADMIN – v4.5 – 2026-07-22
         // ============================================
         const API_BASE = '';
 
@@ -147,23 +155,17 @@
                 loading.classList.remove('hidden');
                 content.classList.add('hidden');
 
-                console.log('📡 Fetching pending approvals...');
                 const pendingRes = await fetch(`${API_BASE}/api/admin/pending`);
                 if (!pendingRes.ok) throw new Error('Error al obtener pendientes');
                 const pendingData = await pendingRes.json();
-                console.log('📡 Pending data:', pendingData);
 
-                console.log('📡 Fetching all users...');
                 const usersRes = await fetch(`${API_BASE}/api/admin/users`);
                 if (!usersRes.ok) throw new Error('Error al obtener usuarios');
                 const usersData = await usersRes.json();
-                console.log('📡 Users data:', usersData);
 
-                console.log('📡 Fetching pending payouts...');
                 const payoutsRes = await fetch(`${API_BASE}/api/admin/pending-payouts`);
                 if (!payoutsRes.ok) throw new Error('Error al obtener pagos pendientes');
                 const payoutsData = await payoutsRes.json();
-                console.log('📡 Payouts data:', payoutsData);
 
                 render(pendingData.users, usersData.users, payoutsData.payouts);
                 loading.classList.add('hidden');
@@ -178,10 +180,6 @@
         }
 
         function render(pendingUsers, allUsers, pendingPayouts) {
-            console.log('📊 Rendering pending users:', pendingUsers);
-            console.log('📊 Rendering all users:', allUsers);
-            console.log('📊 Rendering payouts:', pendingPayouts);
-
             // ---------- Pending Approvals ----------
             if (!pendingUsers || pendingUsers.length === 0) {
                 pendingTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay aprobaciones pendientes.</td></tr>';
@@ -203,35 +201,39 @@
                 pendingTbody.innerHTML = html;
             }
 
-            // ---------- All Users ----------
-            const pendingMap = {};
-            if (pendingPayouts) {
-                pendingPayouts.forEach(p => {
-                    const phone = p.refereePhone;
-                    if (!pendingMap[phone]) pendingMap[phone] = 0;
-                    pendingMap[phone] += p.amount;
-                });
-            }
-
+            // ---------- All Users (new calculations) ----------
             if (!allUsers || allUsers.length === 0) {
-                usersTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>';
+                usersTbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>';
             } else {
                 let html = '';
                 allUsers.forEach(u => {
-                    const pending = pendingMap[u.phone] || 0;
-                    const totalPaid = u.totalPaid || 0;
-                    const totalAcumulado = totalPaid + pending;
-                    const balance = pending;
+                    const totalClients = u.totalCustomers || 0;
+                    const progress = totalClients % 5;
+                    const progressPercent = Math.round((progress / 5) * 100);
+                    const totalAcumulado = totalClients * 1000;          // Each client = RD$1,000
+                    const totalPagado = u.totalPaid || 0;
+                    const balance = totalAcumulado - totalPagado;
+
                     html += `<tr>
                         <td>${u.name}</td>
                         <td>${u.phone}</td>
                         <td>${statusBadge(u.status)}</td>
                         <td>${u.referralCode || '-'}</td>
-                        <td>${u.totalCustomers || 0}</td>
+                        <td>${totalClients}</td>
+                        <td>
+                            <span class="progress-text">${progress}/5</span>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
+                            </div>
+                            <span class="progress-text">(${progressPercent}%)</span>
+                        </td>
                         <td>${u.expiresAt ? formatDate(u.expiresAt) : '-'}</td>
                         <td>RD$ ${totalAcumulado.toLocaleString()}</td>
-                        <td>RD$ ${totalPaid.toLocaleString()}</td>
+                        <td>RD$ ${totalPagado.toLocaleString()}</td>
                         <td>RD$ ${balance.toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="extendExpiry('${u.id}')">+90 días</button>
+                        </td>
                     </tr>`;
                 });
                 usersTbody.innerHTML = html;
@@ -277,6 +279,29 @@
                     fetchAllData();
                 } else {
                     alert('❌ Error: ' + (data.error || 'No se pudo procesar la solicitud.'));
+                }
+            } catch (err) {
+                alert('❌ Error de conexión: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // EXTEND EXPIRY
+        // ============================================
+        async function extendExpiry(userId) {
+            if (!confirm('¿Extender la expiración de este usuario por 90 días?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/extend-expiry`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, daysToAdd: 90 })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert('✅ Expiración extendida exitosamente.');
+                    fetchAllData();
+                } else {
+                    alert('❌ Error: ' + (data.error || 'No se pudo extender.'));
                 }
             } catch (err) {
                 alert('❌ Error de conexión: ' + err.message);
