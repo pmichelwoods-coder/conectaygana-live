@@ -1,4 +1,4 @@
-<!-- index.html - v2.4 - 2026-07-22 -->
+<!-- index.html - v2.5 - 2026-07-23 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,6 +8,8 @@
     <style>
         body { font-family: Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
         .container { max-width: 600px; background: white; border-radius: 16px; padding: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+        .logo-container { text-align: center; margin-bottom: 15px; }
+        .logo-container img { max-width: 180px; height: auto; }
         .header { text-align: center; border-bottom: 2px solid #e8eaed; padding-bottom: 20px; margin-bottom: 25px; }
         .header h1 { color: #1a73e8; font-size: 28px; margin: 0; }
         .header .subtitle { font-size: 18px; color: #5f6368; margin-top: 8px; font-weight: normal; }
@@ -30,10 +32,19 @@
         .ref-box { background: #fef7e0; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
         .ref-box p { margin: 0; color: #ea8600; }
         .hidden { display: none; }
+        .terms-checkbox { display: flex; align-items: flex-start; gap: 10px; margin: 15px 0; }
+        .terms-checkbox input[type="checkbox"] { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; cursor: pointer; }
+        .terms-checkbox label { font-size: 14px; color: #3c4043; cursor: pointer; }
+        .terms-checkbox label a { color: #1a73e8; text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Logo -->
+        <div class="logo-container">
+            <img src="/Conecta Y Gana.png" alt="Conecta Y Gana RD">
+        </div>
+
         <div class="header">
             <h1>📊 Conecta Y Gana RD</h1>
             <p class="subtitle">💡 La forma más fácil de ganar dinero extra.</p>
@@ -73,10 +84,15 @@
                 <input type="text" id="comprobante" placeholder="8+ dígitos" required>
                 <small>De tu depósito de RD$1,250</small>
             </div>
-            <div class="form-group">
+
+            <!-- Terms & Conditions Checkbox -->
+            <div class="terms-checkbox">
                 <input type="checkbox" id="termsCheck" required>
-                <label for="termsCheck" style="display: inline;">Al marcar esta casilla, acepto que estoy comprando un <strong>producto digital</strong> y que <strong>no se realizarán reembolsos</strong> de los fondos.</label>
+                <label for="termsCheck">
+                    Acepto los <a href="/terms" target="_blank">Términos y Condiciones</a> de Conecta Y Gana RD.
+                </label>
             </div>
+
             <input type="hidden" id="refereeCode" value="">
             <button type="submit" class="btn">Registrarse Ahora</button>
             <div id="errorMsg" class="error"></div>
@@ -85,12 +101,12 @@
 
         <div class="footer">
             <p>⚡ Tus datos están seguros. Solo se usarán para comunicación oficial.</p>
-            <p><a href="/terms">Ver Términos y Condiciones</a></p>
+            <p><a href="/terms">Ver Términos y Condiciones completos</a></p>
         </div>
     </div>
 
     <script>
-        // v2.4 - 2026-07-22 - No redirect to dashboard
+        // v2.5 - 2026-07-23 - Added logo and terms checkbox
         const urlParams = new URLSearchParams(window.location.search);
         const ref = urlParams.get('ref') || '26AOTAB7';
         document.getElementById('refCodeDisplay').textContent = ref;
@@ -103,6 +119,7 @@
             const phone = document.getElementById('phone').value.trim();
             const comprobante = document.getElementById('comprobante').value.trim();
             const refereeCode = document.getElementById('refereeCode').value;
+            const termsChecked = document.getElementById('termsCheck').checked;
 
             document.getElementById('errorMsg').textContent = '';
             document.getElementById('successMsg').classList.add('hidden');
@@ -113,6 +130,10 @@
             }
             if (!/^\d{8,}$/.test(comprobante)) {
                 document.getElementById('errorMsg').textContent = 'El comprobante debe tener 8 o más dígitos numéricos.';
+                return;
+            }
+            if (!termsChecked) {
+                document.getElementById('errorMsg').textContent = 'Debes aceptar los Términos y Condiciones para continuar.';
                 return;
             }
 
@@ -130,7 +151,8 @@
                         `📋 Hemos recibido tu depósito de <strong>RD$1,250</strong>.<br>` +
                         `🔍 Comprobante #${comprobante} está en revisión.<br>` +
                         `⏰ El proceso puede tomar hasta <strong>48 horas</strong>.<br><br>` +
-                        `📲 Recibirás un mensaje de confirmación por Telegram.<br><br>` +
+                        `📲 Recibirás un mensaje de confirmación por Telegram.<br>` +
+                        `🔐 Tu PIN de acceso es: <strong>${data.pin || '1234'}</strong> (guárdalo bien).<br><br>` +
                         `<small>ID de registro: ${data.userId}</small>`;
                     document.getElementById('registerForm').reset();
                     document.getElementById('termsCheck').checked = false;
