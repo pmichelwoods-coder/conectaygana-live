@@ -1,4 +1,4 @@
-<!-- admin.html - v4.5 - 2026-07-22 -->
+<!-- admin.html - v4.6 - 2026-07-23 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -23,6 +23,8 @@
         .btn-sm { padding: 4px 10px; font-size: 12px; margin: 2px; }
         .btn-warning { background: #ea8600; }
         .btn-warning:hover { background: #c96f00; }
+        .btn-info { background: #1a73e8; }
+        .btn-info:hover { background: #1557b0; }
         .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
         .status-pending { background: #fef7e0; color: #ea8600; }
         .status-approved { background: #e6f4ea; color: #1e8e3e; }
@@ -84,11 +86,12 @@
                             <th>Total Acumulado</th>
                             <th>Total Pagado</th>
                             <th>Balance</th>
+                            <th>Dashboard</th>
                             <th>Acción</th>
                         </tr>
                     </thead>
                     <tbody id="users-table-body">
-                        <tr><td colspan="11" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>
+                        <tr><td colspan="12" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -124,7 +127,7 @@
 
     <script>
         // ============================================
-        // ADMIN – v4.5 – 2026-07-22
+        // ADMIN – v4.6 – 2026-07-23
         // ============================================
         const API_BASE = '';
 
@@ -201,16 +204,16 @@
                 pendingTbody.innerHTML = html;
             }
 
-            // ---------- All Users (new calculations) ----------
+            // ---------- All Users (with Dashboard button) ----------
             if (!allUsers || allUsers.length === 0) {
-                usersTbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>';
+                usersTbody.innerHTML = '<tr><td colspan="12" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>';
             } else {
                 let html = '';
                 allUsers.forEach(u => {
                     const totalClients = u.totalCustomers || 0;
                     const progress = totalClients % 5;
                     const progressPercent = Math.round((progress / 5) * 100);
-                    const totalAcumulado = totalClients * 1000;          // Each client = RD$1,000
+                    const totalAcumulado = totalClients * 1000;
                     const totalPagado = u.totalPaid || 0;
                     const balance = totalAcumulado - totalPagado;
 
@@ -231,6 +234,9 @@
                         <td>RD$ ${totalAcumulado.toLocaleString()}</td>
                         <td>RD$ ${totalPagado.toLocaleString()}</td>
                         <td>RD$ ${balance.toLocaleString()}</td>
+                        <td>
+                            <a href="/dashboard?phone=${u.phone}" target="_blank" class="btn btn-sm btn-info">📊 Ver</a>
+                        </td>
                         <td>
                             <button class="btn btn-warning btn-sm" onclick="extendExpiry('${u.id}')">+90 días</button>
                         </td>
