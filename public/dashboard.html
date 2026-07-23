@@ -1,3 +1,4 @@
+<!-- dashboard.html - v2.4 - 2026-07-22 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,142 +6,102 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Conecta Y Gana RD</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: #f0f2f5;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-        }
-        h1 {
-            color: #1a73e8;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-        th, td {
-            padding: 12px 10px;
-            text-align: left;
-            border-bottom: 1px solid #e8eaed;
-        }
-        th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #5f6368;
-        }
-        .btn {
-            background: #1a73e8;
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-        }
-        .btn:hover {
-            background: #1557b0;
-        }
-        .hidden {
-            display: none;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #5f6368;
-        }
-        .error-msg {
-            background: #fce8e6;
-            color: #d93025;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        .footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 12px;
-            color: #9aa0a6;
-        }
-        .footer a {
-            color: #1a73e8;
-            text-decoration: none;
-        }
-        input[type="text"], input[type="date"] {
-            padding: 6px 10px;
-            border: 1px solid #dadce0;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        .checkbox-large {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .status-pending { background: #fef7e0; color: #ea8600; }
-        .status-completed { background: #e3f2fd; color: #1a73e8; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 16px; padding: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+        h1 { color: #1a73e8; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 25px 0; }
+        .stat-card { background: #f8f9fa; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #e8eaed; }
+        .stat-card .number { font-size: 32px; font-weight: 700; color: #1a73e8; }
+        .stat-card .label { font-size: 14px; color: #5f6368; margin-top: 5px; }
+        .section { margin-top: 25px; border-top: 1px solid #e8eaed; padding-top: 20px; }
+        .referral-link-box { background: #f8f9fa; border: 1px dashed #dadce0; border-radius: 8px; padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .referral-link-box input { flex: 1; min-width: 200px; padding: 10px; border: 1px solid #dadce0; border-radius: 6px; font-size: 14px; background: white; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .btn:hover { background: #1557b0; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #9aa0a6; }
+        .footer a { color: #1a73e8; text-decoration: none; }
+        .hidden { display: none; }
+        .error-msg { background: #fce8e6; color: #d93025; padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
+        .loading { text-align: center; padding: 40px; color: #5f6368; }
+        .banking-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+        .banking-form select, .banking-form input { padding: 8px; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px; flex: 1; min-width: 150px; }
+        .banking-form button { flex: 0 0 auto; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📊 Conecta Y Gana RD – Dashboard</h1>
-        <div id="loading" class="loading">⏳ Cargando pagos pendientes...</div>
+    <div class="container" id="app">
+        <h1>📊 Conecta Y Gana RD</h1>
+        <div id="loading" class="loading">⏳ Cargando tu información...</div>
         <div id="error-area" class="hidden"></div>
-
         <div id="content" class="hidden">
-            <h2 style="color: #202124; margin-bottom: 15px;">💰 Pagos Pendientes</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Teléfono</th>
-                        <th>Banco</th>
-                        <th>Cuenta</th>
-                        <th>Monto</th>
-                        <th>Comprobante</th>
-                        <th>Fecha de Pago</th>
-                        <th>Marcar Pagado</th>
-                    </tr>
-                </thead>
-                <tbody id="payouts-table-body">
-                    <tr><td colspan="8" style="text-align:center; color:#9aa0a6;">No hay pagos pendientes.</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="footer">
-            <a href="/">🏠 Inicio</a> |
-            <a href="/admin">🛠️ Admin</a> |
-            <a href="/terms">📜 Términos</a>
+            <p id="user-name">👋 Bienvenido, <strong>Cargando...</strong></p>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="number" id="stat-clients">0</div><div class="label">Total Clientes</div></div>
+                <div class="stat-card"><div class="number" id="stat-paid">RD$0</div><div class="label">Total Pagado</div></div>
+                <div class="stat-card"><div class="number" id="stat-pending">RD$0</div><div class="label">Balance</div></div>
+            </div>
+            <div class="section">
+                <h3>🔗 Tu enlace de referido</h3>
+                <div class="referral-link-box">
+                    <input type="text" id="referral-link" readonly>
+                    <button class="btn" onclick="copyLink()">📋 Copiar</button>
+                </div>
+            </div>
+            <div class="section" id="payout-section" style="display: none;">
+                <h3>💰 Tienes un pago pendiente</h3>
+                <p style="color: #1e8e3e; font-size: 18px; font-weight: 700;" id="pending-amount">RD$0</p>
+                <p style="color: #5f6368;">Cuando el administrador lo procese, aparecerá en "Total Pagado".</p>
+            </div>
+            <div class="section">
+                <h3>🏦 Datos Bancarios</h3>
+                <form id="banking-form" class="banking-form">
+                    <select id="bank-name" required>
+                        <option value="">Selecciona un banco</option>
+                        <option value="BanReservas">BanReservas</option>
+                        <option value="Banco Popular">Banco Popular</option>
+                        <option value="Banco BHD León">Banco BHD León</option>
+                        <option value="Banco Santa Cruz">Banco Santa Cruz</option>
+                        <option value="Banco Múltiple Caribe">Banco Múltiple Caribe</option>
+                        <option value="Banco Múltiple Vimenca">Banco Múltiple Vimenca</option>
+                        <option value="Banco Múltiple BDI">Banco Múltiple BDI</option>
+                        <option value="Banco Múltiple Ademi">Banco Múltiple Ademi</option>
+                        <option value="Banco Múltiple Fihogar">Banco Múltiple Fihogar</option>
+                        <option value="Banco Múltiple Córdova">Banco Múltiple Córdova</option>
+                        <option value="Banco Múltiple Lafise">Banco Múltiple Lafise</option>
+                        <option value="Banco Múltiple Promérica">Banco Múltiple Promérica</option>
+                        <option value="Banco Múltiple Atlántico">Banco Múltiple Atlántico</option>
+                        <option value="Banco Múltiple Unión">Banco Múltiple Unión</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                    <input type="text" id="account-number" placeholder="Número de cuenta" required>
+                    <select id="account-type">
+                        <option value="corriente">Corriente</option>
+                        <option value="ahorros">Ahorros</option>
+                    </select>
+                    <button type="submit" class="btn">Guardar</button>
+                </form>
+            </div>
+            <div class="footer">
+                <a href="/">🏠 Inicio</a> |
+                <a href="/admin">🛠️ Admin</a> |
+                <a href="/terms">📜 Términos</a>
+            </div>
         </div>
     </div>
 
     <script>
         // ============================================
-        // DASHBOARD – v4.0 – 2026-07-21
+        // DASHBOARD – v2.4 – 2026-07-22
         // ============================================
         const API_BASE = '';
+        const PHONE_KEY = 'dashboard_phone';
 
         const loading = document.getElementById('loading');
         const content = document.getElementById('content');
         const errorArea = document.getElementById('error-area');
-        const payoutsTbody = document.getElementById('payouts-table-body');
+
+        function getPhone() { return localStorage.getItem(PHONE_KEY) || ''; }
+        function savePhone(p) { localStorage.setItem(PHONE_KEY, p); }
 
         function showError(msg) {
             errorArea.classList.remove('hidden');
@@ -153,25 +114,28 @@
             errorArea.innerHTML = '';
         }
 
-        function statusBadge(status) {
-            const map = {
-                'pending': 'status-pending',
-                'completed': 'status-completed'
-            };
-            return `<span class="status-badge ${map[status] || ''}">${status.toUpperCase()}</span>`;
-        }
-
-        async function fetchPendingPayouts() {
+        async function loadDashboard(phone) {
             try {
                 hideError();
                 loading.classList.remove('hidden');
                 content.classList.add('hidden');
 
-                const res = await fetch(`${API_BASE}/api/admin/pending-payouts`);
-                if (!res.ok) throw new Error('Error al obtener pagos pendientes');
-                const data = await res.json();
+                const userRes = await fetch(`${API_BASE}/api/user/${phone}`);
+                if (!userRes.ok) {
+                    if (userRes.status === 404) {
+                        alert('Usuario no encontrado. Registrate primero.');
+                        window.location.href = '/';
+                        return;
+                    }
+                    throw new Error(`HTTP ${userRes.status}`);
+                }
+                const user = await userRes.json();
 
-                renderPayouts(data.payouts);
+                // Get payouts (to show pending)
+                const payRes = await fetch(`${API_BASE}/api/user/${phone}/payouts`);
+                const payouts = payRes.ok ? await payRes.json() : { payouts: [] };
+
+                renderDashboard(user, payouts);
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
             } catch (err) {
@@ -180,77 +144,100 @@
             }
         }
 
-        function renderPayouts(payouts) {
-            if (!payouts || payouts.length === 0) {
-                payoutsTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#9aa0a6;">No hay pagos pendientes.</td></tr>';
-                return;
+        function renderDashboard(user, payouts) {
+            document.getElementById('user-name').innerHTML = `👋 Bienvenido, <strong>${user.name || 'Usuario'}</strong>`;
+
+            const totalClients = user.totalCustomers || 0;
+            const totalAcumulado = totalClients * 1000;   // Each client = RD$1,000
+            const totalPagado = user.totalPaid || 0;
+            const balance = totalAcumulado - totalPagado;
+
+            document.getElementById('stat-clients').textContent = totalClients;
+            document.getElementById('stat-paid').textContent = `RD$${totalPagado.toLocaleString()}`;
+            document.getElementById('stat-pending').textContent = `RD$${balance.toLocaleString()}`;
+
+            const baseUrl = window.location.origin;
+            const code = user.referralCode || '';
+            document.getElementById('referral-link').value = code ? `${baseUrl}/?ref=${code}` : '⚠️ Sin código aún';
+
+            // Show pending payout section if any
+            const section = document.getElementById('payout-section');
+            if (balance > 0) {
+                section.style.display = 'block';
+                document.getElementById('pending-amount').textContent = `RD$${balance.toLocaleString()}`;
+            } else {
+                section.style.display = 'none';
             }
 
-            let html = '';
-            payouts.forEach(p => {
-                const bank = p.bankingDetails?.bankName || 'N/A';
-                const account = p.bankingDetails?.accountNumber || 'N/A';
-                html += `<tr id="payout-row-${p.id}">
-                    <td>${p.refereeName}</td>
-                    <td>${p.refereePhone}</td>
-                    <td>${bank}</td>
-                    <td>${account}</td>
-                    <td>RD$ ${p.amount.toLocaleString()}</td>
-                    <td><input type="text" id="txn-${p.id}" placeholder="N° Transacción"></td>
-                    <td><input type="date" id="date-${p.id}" value="${new Date().toISOString().split('T')[0]}"></td>
-                    <td>
-                        <input type="checkbox" class="checkbox-large" id="check-${p.id}" onchange="completePayout('${p.id}')">
-                    </td>
-                </tr>`;
-            });
-            payoutsTbody.innerHTML = html;
+            // Banking details
+            if (user.bankingDetails) {
+                document.getElementById('bank-name').value = user.bankingDetails.bankName || '';
+                document.getElementById('account-number').value = user.bankingDetails.accountNumber || '';
+                document.getElementById('account-type').value = user.bankingDetails.accountType || '';
+            }
+            savePhone(user.phone);
         }
 
-        async function completePayout(payoutId) {
-            const checkbox = document.getElementById(`check-${payoutId}`);
-            if (!checkbox.checked) return;
-
-            if (!confirm(`¿Marcar este pago como completado?`)) {
-                checkbox.checked = false;
+        function copyLink() {
+            const input = document.getElementById('referral-link');
+            if (!input.value || input.value.includes('⚠️')) {
+                alert('No hay enlace para copiar aún.');
                 return;
             }
+            navigator.clipboard.writeText(input.value)
+                .then(() => alert('✅ Enlace copiado!'))
+                .catch(() => {
+                    input.select();
+                    document.execCommand('copy');
+                    alert('✅ Enlace copiado!');
+                });
+        }
 
-            const txnInput = document.getElementById(`txn-${payoutId}`);
-            const dateInput = document.getElementById(`date-${payoutId}`);
-            const transactionNumber = txnInput.value.trim();
-            const transactionDate = dateInput.value;
+        document.getElementById('banking-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const phone = getPhone();
+            const bankName = document.getElementById('bank-name').value.trim();
+            const accountNumber = document.getElementById('account-number').value.trim();
+            const accountType = document.getElementById('account-type').value;
 
-            if (!transactionNumber) {
-                alert('Por favor, ingresa el número de transacción.');
-                checkbox.checked = false;
-                return;
-            }
+            if (!phone) { alert('No se encontró tu número. Recarga la página.'); return; }
+            if (!bankName || !accountNumber || !accountType) { alert('Completa todos los campos bancarios.'); return; }
 
             try {
-                const res = await fetch(`${API_BASE}/api/admin/complete-payout`, {
+                const res = await fetch(`${API_BASE}/api/user/update-banking`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        payoutId,
-                        transactionNumber,
-                        transactionDate
-                    })
+                    body: JSON.stringify({ phone, bankName, accountNumber, accountType })
                 });
                 const data = await res.json();
-                if (res.ok && data.success) {
-                    alert('✅ Pago completado exitosamente');
-                    fetchPendingPayouts(); // refresh the list
-                } else {
-                    alert('❌ Error: ' + (data.error || 'No se pudo completar el pago'));
-                    checkbox.checked = false;
-                }
+                alert(data.success ? '✅ Datos bancarios guardados.' : '❌ Error: ' + data.error);
             } catch (err) {
-                alert('❌ Error de conexión: ' + err.message);
-                checkbox.checked = false;
+                alert('Error de conexión.');
             }
-        }
+        });
 
-        document.addEventListener('DOMContentLoaded', fetchPendingPayouts);
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            let phone = params.get('phone') || getPhone();
+
+            if (!phone) {
+                const userPhone = prompt('📱 Ingresa tu número de teléfono (ej: 8498634889):');
+                if (userPhone) {
+                    phone = userPhone.replace(/\D/g, '');
+                    savePhone(phone);
+                } else {
+                    window.location.href = '/';
+                    return;
+                }
+            }
+
+            if (phone) {
+                loadDashboard(phone);
+            } else {
+                showError('No se pudo obtener tu número.');
+            }
+        });
     </script>
 </body>
 </html>
