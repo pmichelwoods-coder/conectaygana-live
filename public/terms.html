@@ -1,408 +1,208 @@
+<!-- terms.html - v2.0 - 2026-07-23 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Términos y Condiciones - Conecta Y Gana RD 5 Mil</title>
+    <title>Términos y Condiciones - Conecta Y Gana RD</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 3px solid #0f3460;
-            padding-bottom: 20px;
-        }
-        .logo {
-            max-width: 150px;
-            margin: 0 auto 15px;
-            display: block;
-        }
-        h1 {
-            color: #1a1a2e;
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-        .subtitle {
-            color: #0f3460;
-            font-size: 16px;
-            font-weight: bold;
-        }
-        .language-toggle {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 15px 0 25px;
-        }
-        .lang-btn {
-            padding: 8px 25px;
-            border: 2px solid #0f3460;
-            background: transparent;
-            color: #0f3460;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        .lang-btn:hover {
-            background: #0f3460;
-            color: white;
-        }
-        .lang-btn.active {
-            background: #0f3460;
-            color: white;
-        }
-        .back-btn {
-            display: inline-block;
-            padding: 10px 25px;
-            background: #0f3460;
-            color: white;
-            text-decoration: none;
-            border-radius: 25px;
-            margin-bottom: 20px;
-            transition: background 0.3s;
-            font-weight: bold;
-        }
-        .back-btn:hover {
-            background: #1a1a2e;
-        }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 12px;
-            border-left: 5px solid #0f3460;
-        }
-        .section h2 {
-            color: #0f3460;
-            font-size: 22px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .section h2 .icon {
-            font-size: 28px;
-        }
-        .section p {
-            color: #333;
-            line-height: 1.8;
-            margin-bottom: 10px;
-        }
-        .section ul {
-            color: #333;
-            line-height: 1.8;
-            padding-left: 25px;
-        }
-        .section ul li {
-            margin-bottom: 8px;
-        }
-        .highlight {
-            background: #fff3cd;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #ffc107;
-            margin: 15px 0;
-        }
-        .highlight-important {
-            background: #f8d7da;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #dc3545;
-            margin: 15px 0;
-        }
-        .highlight-success {
-            background: #d4edda;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #28a745;
-            margin: 15px 0;
-        }
-        .highlight-info {
-            background: #d1ecf1;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #17a2b8;
-            margin: 15px 0;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #ddd;
-            color: #888;
-            font-size: 14px;
-        }
-        .footer .version {
-            color: #666;
-            font-weight: bold;
-        }
-        .lang-content {
-            display: none;
-        }
-        .lang-content.active {
-            display: block;
-        }
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-            }
-            .section {
-                padding: 15px;
-            }
-            h1 {
-                font-size: 22px;
-            }
-        }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 16px; padding: 40px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+        h1 { color: #1a73e8; border-bottom: 2px solid #e8eaed; padding-bottom: 15px; }
+        h2 { color: #202124; margin-top: 30px; }
+        h3 { color: #1a73e8; margin-top: 20px; }
+        p, li { color: #3c4043; line-height: 1.7; font-size: 15px; }
+        ul { padding-left: 25px; }
+        li { margin-bottom: 8px; }
+        .highlight-box { background: #fef7e0; padding: 15px 20px; border-radius: 8px; border-left: 4px solid #ea8600; margin: 20px 0; }
+        .highlight-box strong { color: #ea8600; }
+        .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #9aa0a6; border-top: 1px solid #e8eaed; padding-top: 20px; }
+        .footer a { color: #1a73e8; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        .badge { display: inline-block; background: #1e8e3e; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <img src="/logo.png" alt="Conecta Y Gana RD 5 Mil" class="logo" onerror="this.style.display='none'">
-            <h1>Conecta Y Gana RD 5 Mil</h1>
-            <div class="subtitle">📋 Términos y Condiciones</div>
+        <h1>📜 Términos y Condiciones</h1>
+        <p style="color: #5f6368; margin-bottom: 20px;"><strong>Última actualización:</strong> 23 de julio de 2026</p>
+
+        <!-- ============================================ -->
+        <!-- SECTION 1: GENERAL -->
+        <!-- ============================================ -->
+        <h2>1. Información General</h2>
+        <p><strong>Conecta Y Gana RD</strong> es un programa de referidos con inversión inicial, diseñado para ofrecer a los participantes la oportunidad de generar ingresos extras a través de un sistema de referidos ilimitados.</p>
+        <p>Al registrarte y realizar tu depósito de <strong>RD$1,250</strong>, aceptas los siguientes términos y condiciones. Este documento establece las reglas, responsabilidades y derechos de todas las partes involucradas.</p>
+
+        <div class="highlight-box">
+            <strong>⚠️ Requisito de Edad:</strong> Este programa está dirigido exclusivamente a personas <strong>mayores de 18 años</strong>. Al registrarte, declaras que cumples con este requisito.
         </div>
 
-        <!-- Back Button -->
-        <a href="/" class="back-btn">← Volver / Back</a>
+        <!-- ============================================ -->
+        <!-- SECTION 2: THE SYSTEM -->
+        <!-- ============================================ -->
+        <h2>2. Cómo Funciona el Sistema</h2>
+        <p><strong>Conecta Y Gana RD</strong> es un sistema de referidos basado en inversión mínima. No es un esquema piramidal ni un sistema de "upline/downline".</p>
 
-        <!-- Language Toggle -->
-        <div class="language-toggle">
-            <button class="lang-btn active" onclick="switchLanguage('es')">🇪🇸 Español</button>
-            <button class="lang-btn" onclick="switchLanguage('en')">🇺🇸 English</button>
+        <ul>
+            <li><strong>Inversión Inicial:</strong> RD$1,250 (pago único).</li>
+            <li><strong>Acceso:</strong> 90 días de vigencia desde la fecha de aprobación.</li>
+            <li><strong>Ganancias:</strong> RD$5,000 por cada 5 clientes referidos y aprobados.</li>
+            <li><strong>Pago:</strong> 100% del monto ganado. No se retienen fondos para compartir con referidores ni con nadie más.</li>
+            <li><strong>Sin Límite:</strong> No hay límite de referidos ni de pagos. Puedes ganar de forma ilimitada.</li>
+        </ul>
+
+        <div class="highlight-box">
+            <strong>✅ Esto NO es una lotería ni un juego de azar.</strong> Es un sistema de inversión con garantía de pago total por cada 5 clientes referidos.
         </div>
 
-        <!-- SPANISH CONTENT -->
-        <div id="content-es" class="lang-content active">
-            <!-- Sección 1: Información Personal -->
-            <div class="section">
-                <h2><span class="icon">🔒</span> Información Personal</h2>
-                <p>Conecta Y Gana RD 5 Mil nunca te solicitará información personal más allá de:</p>
-                <ul>
-                    <li><strong>Nombre completo</strong> - Para identificación y registros</li>
-                    <li><strong>Número de WhatsApp</strong> - Para comunicaciones y notificaciones</li>
-                    <li><strong>Número de cuenta bancaria</strong> - Únicamente para procesar tus pagos</li>
-                </ul>
-                <div class="highlight">
-                    ⚠️ <strong>Importante:</strong> No compartimos tu información con terceros. Tus datos están seguros y solo se utilizan para el funcionamiento del programa.
-                </div>
-            </div>
+        <!-- ============================================ -->
+        <!-- SECTION 3: REGISTRO Y DEPÓSITO -->
+        <!-- ============================================ -->
+        <h2>3. Registro y Depósito</h2>
+        <ul>
+            <li>Para registrarte, debes completar el formulario con tu <strong>nombre completo</strong>, <strong>número de teléfono</strong> y <strong>número de transacción</strong> (comprobante de pago).</li>
+            <li>El depósito de <strong>RD$1,250</strong> debe realizarse en la cuenta bancaria indicada en la página de registro.</li>
+            <li>El comprobante de pago será verificado en un plazo de <strong>48 horas</strong>.</li>
+            <li>Una vez aprobado, recibirás tu <strong>código de referido</strong> y tu cuenta estará activa por <strong>90 días</strong>.</li>
+            <li>Al registrarte, aceptas que el depósito es para la compra de un <strong>producto digital</strong> y que <strong>no se realizarán reembolsos</strong>.</li>
+        </ul>
 
-            <!-- Sección 2: Seguridad del Enlace de Referidos -->
-            <div class="section">
-                <h2><span class="icon">🔗</span> Seguridad del Enlace de Referidos</h2>
-                <p>Tu enlace de referidos es tu clave de acceso al programa. Debes:</p>
-                <ul>
-                    <li>Guardar tu enlace en un lugar seguro - Fuera de tu teléfono</li>
-                    <li>No compartirlo con personas no autorizadas</li>
-                    <li>Mantenerlo accesible en caso de que pierdas tu teléfono</li>
-                </ul>
-                <div class="highlight-important">
-                    📱 <strong>Importante:</strong> Si pierdes tu teléfono, necesitarás tu enlace de referidos para activar tu cuenta en un nuevo dispositivo. Sin tu enlace, no podremos verificar tu identidad.
-                </div>
-            </div>
+        <!-- ============================================ -->
+        <!-- SECTION 4: PIN Y SEGURIDAD -->
+        <!-- ============================================ -->
+        <h2>4. PIN de Acceso al Dashboard</h2>
+        <p>Por seguridad, cada usuario recibe un <strong>PIN de 4 dígitos</strong> al momento del registro. Este PIN se envía por Telegram junto con el mensaje de confirmación.</p>
 
-            <!-- Sección 3: Activación de Cuenta -->
-            <div class="section">
-                <h2><span class="icon">📱</span> Activación de Cuenta</h2>
-                <p>Tu número de cliente solo puede estar activo en un dispositivo a la vez. Esto es para:</p>
-                <ul>
-                    <li>Proteger tu cuenta contra accesos no autorizados</li>
-                    <li>Mantener la integridad del sistema de referidos</li>
-                    <li>Evitar duplicación de comisiones</li>
-                </ul>
-                <div class="highlight-info">
-                    🔑 <strong>Importante:</strong> Si cambias de dispositivo, deberás usar tu enlace de referidos para reactivar tu cuenta.
-                </div>
-            </div>
+        <ul>
+            <li><strong>¿Cómo usar el PIN?</strong> Para acceder al dashboard, debes ingresar tu <strong>número de teléfono + PIN</strong>.</li>
+            <li><strong>¿Qué hacer si olvidas tu PIN?</strong> Contacta al administrador. El administrador puede restablecer tu PIN desde el panel de control.</li>
+            <li><strong>Seguridad:</strong> No compartas tu PIN con nadie. El administrador nunca te pedirá tu PIN por teléfono, WhatsApp o Telegram.</li>
+        </ul>
 
-            <!-- Sección 4: Transferencia de Referidos -->
-            <div class="section">
-                <h2><span class="icon">🔄</span> Transferencia de Referidos</h2>
-                <p>Si tienes 3 o más referidos activos y tu cuenta está por expirar:</p>
-                <ul>
-                    <li>Debes contactar al administrador entre 10 y 3 días antes de que expire tu cuenta</li>
-                    <li>Deberás pagar la cuota de activación para transferir tus referidos a tu nueva cuenta</li>
-                    <li>Si tu cuenta expira antes de reactivarla, perderás todos tus referidos</li>
-                </ul>
-                <div class="highlight-important">
-                    ⚠️ <strong>¡Atención!</strong> Si tu cuenta expira y no has reactivado, perderás todos tus referidos acumulados. No podremos recuperarlos.
-                </div>
-            </div>
-
-            <!-- Sección 5: Reactivación de Cuenta -->
-            <div class="section">
-                <h2><span class="icon">🔄</span> Reactivación de Cuenta</h2>
-                <p>Para reactivar tu cuenta después de la expiración:</p>
-                <ul>
-                    <li>Debes obtener un nuevo código de referido de uno de tus referidos</li>
-                    <li>Completar el proceso de registro nuevamente</li>
-                    <li>Pagar la cuota de activación</li>
-                </ul>
-                <div class="highlight-success">
-                    💡 <strong>Consejo:</strong> Mantén contacto con tus referidos para que puedan ayudarte a reactivar tu cuenta si es necesario.
-                </div>
-            </div>
-
-            <!-- Sección 6: Resumen -->
-            <div class="section" style="border-left-color: #28a745;">
-                <h2><span class="icon">📌</span> Resumen</h2>
-                <div class="highlight-success">
-                    <strong>📌 Puntos clave:</strong>
-                    <ul>
-                        <li>Tu enlace de referidos es tu identidad en el programa</li>
-                        <li>Guarda tu enlace en un lugar seguro</li>
-                        <li>Un dispositivo por cuenta</li>
-                        <li>Contacta al admin 10-3 días antes de expirar si tienes 3+ referidos</li>
-                        <li>Paga la cuota de activación para transferir tus referidos</li>
-                        <li>Si expiras sin reactivar, pierdes tus referidos</li>
-                    </ul>
-                </div>
-            </div>
+        <div class="highlight-box">
+            <strong>🔐 Recomendación:</strong> Cambia tu PIN periódicamente y no lo guardes en lugares accesibles para terceros.
         </div>
 
-        <!-- ENGLISH CONTENT -->
-        <div id="content-en" class="lang-content">
-            <!-- Section 1: Personal Information -->
-            <div class="section">
-                <h2><span class="icon">🔒</span> Personal Information</h2>
-                <p>Conecta Y Gana RD 5 Mil will never request personal information beyond:</p>
-                <ul>
-                    <li><strong>Full name</strong> - For identification and records</li>
-                    <li><strong>WhatsApp number</strong> - For communications and notifications</li>
-                    <li><strong>Bank account number</strong> - Only to process your payments</li>
-                </ul>
-                <div class="highlight">
-                    ⚠️ <strong>Important:</strong> We do not share your information with third parties. Your data is secure and only used for program operations.
-                </div>
-            </div>
+        <!-- ============================================ -->
+        <!-- SECTION 5: DATOS BANCARIOS -->
+        <!-- ============================================ -->
+        <h2>5. Datos Bancarios</h2>
+        <ul>
+            <li>Para recibir tus pagos, debes ingresar tus <strong>datos bancarios</strong> en el dashboard dentro de los <strong>7 días posteriores a la aprobación</strong> de tu cuenta.</li>
+            <li>Los pagos se realizarán <strong>exclusivamente</strong> a la cuenta registrada en el sistema.</li>
+            <li>El nombre de la cuenta bancaria debe coincidir con el <strong>nombre registrado</strong> en el sistema. No se aceptan cuentas de terceros.</li>
+            <li>Si no ingresas tus datos bancarios dentro del plazo establecido, tu pago podría retrasarse hasta que completes la información.</li>
+        </ul>
 
-            <!-- Section 2: Referral Link Security -->
-            <div class="section">
-                <h2><span class="icon">🔗</span> Referral Link Security</h2>
-                <p>Your referral link is your key to accessing the program. You must:</p>
-                <ul>
-                    <li>Save your link in a secure place - Outside your phone</li>
-                    <li>Not share it with unauthorized persons</li>
-                    <li>Keep it accessible in case you lose your phone</li>
-                </ul>
-                <div class="highlight-important">
-                    📱 <strong>Important:</strong> If you lose your phone, you'll need your referral link to activate your account on a new device. Without your link, we cannot verify your identity.
-                </div>
-            </div>
-
-            <!-- Section 3: Account Activation -->
-            <div class="section">
-                <h2><span class="icon">📱</span> Account Activation</h2>
-                <p>Your customer number can only be active on one device at a time. This is to:</p>
-                <ul>
-                    <li>Protect your account from unauthorized access</li>
-                    <li>Maintain the integrity of the referral system</li>
-                    <li>Prevent duplication of commissions</li>
-                </ul>
-                <div class="highlight-info">
-                    🔑 <strong>Important:</strong> If you change devices, you must use your referral link to reactivate your account.
-                </div>
-            </div>
-
-            <!-- Section 4: Referral Transfer -->
-            <div class="section">
-                <h2><span class="icon">🔄</span> Referral Transfer</h2>
-                <p>If you have 3 or more active referrals and your account is about to expire:</p>
-                <ul>
-                    <li>You must contact the administrator 10 to 3 days before your account expires</li>
-                    <li>You must pay the activation fee to transfer your referrals to your new account</li>
-                    <li>If your account expires before reactivation, you will lose all your referrals</li>
-                </ul>
-                <div class="highlight-important">
-                    ⚠️ <strong>Attention!</strong> If your account expires and you haven't reactivated, you will lose all your accumulated referrals. We cannot recover them.
-                </div>
-            </div>
-
-            <!-- Section 5: Account Reactivation -->
-            <div class="section">
-                <h2><span class="icon">🔄</span> Account Reactivation</h2>
-                <p>To reactivate your account after expiration:</p>
-                <ul>
-                    <li>You must obtain a new referral code from one of your referrals</li>
-                    <li>Complete the registration process again</li>
-                    <li>Pay the activation fee</li>
-                </ul>
-                <div class="highlight-success">
-                    💡 <strong>Tip:</strong> Keep in touch with your referrals so they can help you reactivate your account if needed.
-                </div>
-            </div>
-
-            <!-- Section 6: Summary -->
-            <div class="section" style="border-left-color: #28a745;">
-                <h2><span class="icon">📌</span> Summary</h2>
-                <div class="highlight-success">
-                    <strong>📌 Key Points:</strong>
-                    <ul>
-                        <li>Your referral link is your identity in the program</li>
-                        <li>Save your link in a secure place</li>
-                        <li>One device per account</li>
-                        <li>Contact admin 10-3 days before expiring if you have 3+ referrals</li>
-                        <li>Pay the activation fee to transfer your referrals</li>
-                        <li>If you expire without reactivating, you lose your referrals</li>
-                    </ul>
-                </div>
-            </div>
+        <div class="highlight-box">
+            <strong>⚠️ Importante:</strong> Los pagos solo se realizan a la cuenta que coincida con el nombre registrado. No se realizan pagos a terceros.
         </div>
 
-        <!-- Footer -->
+        <!-- ============================================ -->
+        <!-- SECTION 6: PAGOS -->
+        <!-- ============================================ -->
+        <h2>6. Pagos</h2>
+        <ul>
+            <li>Los pagos se generan automáticamente cuando alcanzas <strong>5 clientes aprobados</strong>.</li>
+            <li>El monto de pago es de <strong>RD$5,000</strong> por cada 5 clientes aprobados.</li>
+            <li>El administrador procesa los pagos en un plazo de <strong>2 días hábiles</strong> después de la generación del pago.</li>
+            <li>Tu <strong>balance acumulado</strong> refleja el total de dinero que has ganado (clientes × RD$1,000).</li>
+            <li>El <strong>Total Pagado</strong> refleja lo que ya has recibido.</li>
+            <li>El <strong>Balance</strong> es la diferencia entre lo acumulado y lo pagado (lo que está pendiente).</li>
+        </ul>
+
+        <!-- ============================================ -->
+        <!-- SECTION 7: PROHIBICIONES Y SANCIONES -->
+        <!-- ============================================ -->
+        <h2>7. Prohibiciones y Sanciones</h2>
+        <ul>
+            <li><strong>No se permite la consolidación de totales</strong> entre usuarios. Cada usuario trabaja de forma independiente. No puedes combinar tus referidos con los de otra persona para alcanzar un pago.</li>
+            <li><strong>Manipulación del sistema:</strong> Cualquier intento de manipular el sistema (creación de cuentas falsas, uso de bots, referidos ficticios, etc.) resultará en el <strong>bloqueo permanente</strong> de la cuenta y la <strong>pérdida de todos los fondos acumulados</strong>.</li>
+            <li><strong>No es un sistema de "upline/downline":</strong> Este es un sistema directo. Tú ganas por tus propios referidos. No hay comisiones compartidas ni jerarquías.</li>
+            <li><strong>No hay fondos retenidos:</strong> El 100% de tus ganancias te pertenecen. No se retiene ningún porcentaje para compartir con referidores ni con nadie más.</li>
+        </ul>
+
+        <!-- ============================================ -->
+        <!-- SECTION 8: RESPONSABILIDADES DEL USUARIO -->
+        <!-- ============================================ -->
+        <h2>8. Responsabilidades del Usuario</h2>
+        <ul>
+            <li><strong>Cambio de número de teléfono:</strong> Si cambias tu número de teléfono, debes <strong>notificar al administrador de forma inmediata</strong> para actualizar tu registro. De lo contrario, podrías perder el acceso a tu cuenta.</li>
+            <li><strong>Pérdida o daño del teléfono:</strong> Si pierdes o dañas tu teléfono, podrás recuperar tu cuenta con el <strong>mismo número de teléfono</strong> registrado. No se permiten cambios de número sin notificación previa.</li>
+            <li><strong>Actualización de datos:</strong> Es tu responsabilidad mantener tus datos actualizados (nombre, teléfono, datos bancarios).</li>
+            <li><strong>Comunicación:</strong> Debes responder a las comunicaciones del administrador en un plazo razonable.</li>
+        </ul>
+
+        <!-- ============================================ -->
+        <!-- SECTION 9: DISPUTAS Y RECLAMACIONES -->
+        <!-- ============================================ -->
+        <h2>9. Disputas y Reclamaciones</h2>
+        <ul>
+            <li>En caso de cualquier disputa o reclamación, el monto máximo que puede ser reclamado es de <strong>RD$50,000</strong> (cincuenta mil pesos dominicanos).</li>
+            <li>Todas las disputas serán resueltas por el administrador, cuya decisión será final.</li>
+            <li>El administrador se compromete a responder a todas las reclamaciones en un plazo de <strong>5 días hábiles</strong>.</li>
+        </ul>
+
+        <div class="highlight-box">
+            <strong>⚖️ Límite de Reclamación:</strong> El monto máximo reclamable es de RD$50,000. Esto aplica a cualquier disputa relacionada con el sistema, pagos, o cualquier otro aspecto del programa.
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECTION 10: CANCELACIÓN Y BLOQUEO -->
+        <!-- ============================================ -->
+        <h2>10. Cancelación y Bloqueo</h2>
+        <ul>
+            <li><strong>Bloqueo por manipulación:</strong> Cualquier intento de manipulación resultará en bloqueo permanente y pérdida de fondos.</li>
+            <li><strong>Cancelación voluntaria:</strong> Puedes solicitar la cancelación de tu cuenta en cualquier momento. Los fondos acumulados no pagados serán retenidos si no has alcanzado el mínimo de 5 clientes.</li>
+            <li><strong>Inactividad:</strong> Si tu cuenta permanece inactiva por más de 30 días, el administrador se reserva el derecho de contactarte para verificar tu estado.</li>
+        </ul>
+
+        <!-- ============================================ -->
+        <!-- SECTION 11: POLÍTICA DE PRIVACIDAD -->
+        <!-- ============================================ -->
+        <h2>11. Privacidad y Protección de Datos</h2>
+        <ul>
+            <li>Tu información personal (nombre, teléfono, datos bancarios) será utilizada <strong>exclusivamente</strong> para la operación del programa.</li>
+            <li>No compartimos tu información con terceros sin tu consentimiento explícito.</li>
+            <li>Los datos bancarios solo se utilizan para procesar tus pagos.</li>
+            <li>Puedes solicitar la eliminación de tus datos en cualquier momento contactando al administrador.</li>
+        </ul>
+
+        <!-- ============================================ -->
+        <!-- SECTION 12: MODIFICACIONES -->
+        <!-- ============================================ -->
+        <h2>12. Modificaciones de los Términos</h2>
+        <ul>
+            <li>El administrador se reserva el derecho de modificar estos términos en cualquier momento.</li>
+            <li>Los cambios serán notificados a través del dashboard o por Telegram.</li>
+            <li>El uso continuado del sistema después de los cambios constituye la aceptación de los nuevos términos.</li>
+        </ul>
+
+        <!-- ============================================ -->
+        <!-- SECTION 13: CONTACTO -->
+        <!-- ============================================ -->
+        <h2>13. Contacto</h2>
+        <p>Si tienes preguntas, dudas o necesitas asistencia, puedes contactar al administrador a través de:</p>
+        <ul>
+            <li><strong>Telegram:</strong> <a href="https://t.me/conectaganabot" target="_blank">@conectaganabot</a></li>
+            <li><strong>Correo electrónico:</strong> (disponible en el dashboard)</li>
+        </ul>
+
+        <!-- ============================================ -->
+        <!-- FOOTER -->
+        <!-- ============================================ -->
         <div class="footer">
-            <p>© 2026 Conecta Y Gana RD 5 Mil - Todos los derechos reservados / All rights reserved</p>
-            <p class="version">Versión 1.0 | Última actualización / Last updated: 2 de julio de 2026</p>
+            <p>© 2026 Conecta Y Gana RD. Todos los derechos reservados.</p>
+            <p>
+                <a href="/">🏠 Inicio</a> |
+                <a href="/dashboard">📊 Dashboard</a> |
+                <a href="/admin">🛠️ Admin</a>
+            </p>
+            <p style="font-size: 11px; color: #b0b0b0;">
+                Versión 2.0 – 23 de julio de 2026
+            </p>
         </div>
     </div>
-
-    <script>
-        function switchLanguage(lang) {
-            // Hide all content
-            document.querySelectorAll('.lang-content').forEach(el => {
-                el.classList.remove('active');
-            });
-            
-            // Show selected language
-            if (lang === 'es') {
-                document.getElementById('content-es').classList.add('active');
-            } else {
-                document.getElementById('content-en').classList.add('active');
-            }
-            
-            // Update button styles
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Find the clicked button and make it active
-            const buttons = document.querySelectorAll('.lang-btn');
-            if (lang === 'es') {
-                buttons[0].classList.add('active');
-            } else {
-                buttons[1].classList.add('active');
-            }
-        }
-    </script>
 </body>
 </html>
