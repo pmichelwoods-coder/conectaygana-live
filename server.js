@@ -21,7 +21,7 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const DEFAULT_CHAT_ID = process.env.TELEGRAM_DEFAULT_CHAT_ID;
 const SKIP_TELEGRAM = process.env.SKIP_TELEGRAM === 'true' ? true : false;
 const PROJECT_NAME = process.env.PROJECT_NAME || 'Conecta Y Gana RD 5 Mil';
-const DB_FILE = path.join(__dirname, 'database.json');
+const DB_FILE = path.join('/data', 'database.json');
 
 // ============================================
 // DATABASE HELPERS
