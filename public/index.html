@@ -1,3 +1,4 @@
+<!-- index.html - v2.4 - 2026-07-22 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -23,10 +24,12 @@
         .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #9aa0a6; }
         .footer a { color: #1a73e8; text-decoration: none; }
         .error { color: #d93025; font-size: 14px; margin-top: 10px; }
+        .success { color: #1e8e3e; font-size: 14px; margin-top: 10px; }
         .highlight-box { background: #e6f4ea; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
         .highlight-box p { margin: 0; color: #1e8e3e; }
         .ref-box { background: #fef7e0; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
         .ref-box p { margin: 0; color: #ea8600; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -77,6 +80,7 @@
             <input type="hidden" id="refereeCode" value="">
             <button type="submit" class="btn">Registrarse Ahora</button>
             <div id="errorMsg" class="error"></div>
+            <div id="successMsg" class="success hidden"></div>
         </form>
 
         <div class="footer">
@@ -86,7 +90,7 @@
     </div>
 
     <script>
-        // v2.1 - 2026-07-20 - No phone normalization
+        // v2.4 - 2026-07-22 - No redirect to dashboard
         const urlParams = new URLSearchParams(window.location.search);
         const ref = urlParams.get('ref') || '26AOTAB7';
         document.getElementById('refCodeDisplay').textContent = ref;
@@ -96,9 +100,12 @@
             e.preventDefault();
 
             const name = document.getElementById('name').value.trim();
-            const phone = document.getElementById('phone').value.trim(); // stored as is
+            const phone = document.getElementById('phone').value.trim();
             const comprobante = document.getElementById('comprobante').value.trim();
             const refereeCode = document.getElementById('refereeCode').value;
+
+            document.getElementById('errorMsg').textContent = '';
+            document.getElementById('successMsg').classList.add('hidden');
 
             if (!name || !phone || !comprobante) {
                 document.getElementById('errorMsg').textContent = 'Todos los campos son requeridos.';
@@ -117,8 +124,16 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    alert('✅ Depósito recibido. Está en revisión (48 horas).');
-                    window.location.href = '/dashboard?phone=' + phone;
+                    document.getElementById('successMsg').classList.remove('hidden');
+                    document.getElementById('successMsg').innerHTML =
+                        `✅ <strong>¡Registro exitoso!</strong><br><br>` +
+                        `📋 Hemos recibido tu depósito de <strong>RD$1,250</strong>.<br>` +
+                        `🔍 Comprobante #${comprobante} está en revisión.<br>` +
+                        `⏰ El proceso puede tomar hasta <strong>48 horas</strong>.<br><br>` +
+                        `📲 Recibirás un mensaje de confirmación por Telegram.<br><br>` +
+                        `<small>ID de registro: ${data.userId}</small>`;
+                    document.getElementById('registerForm').reset();
+                    document.getElementById('termsCheck').checked = false;
                 } else {
                     document.getElementById('errorMsg').textContent = data.error || 'Error al registrar.';
                 }
