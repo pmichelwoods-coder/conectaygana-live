@@ -1,4 +1,4 @@
-<!-- admin.html - v4.6 - 2026-07-23 -->
+<!-- admin.html - v4.8 - 2026-07-23 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -25,6 +25,8 @@
         .btn-warning:hover { background: #c96f00; }
         .btn-info { background: #1a73e8; }
         .btn-info:hover { background: #1557b0; }
+        .btn-purple { background: #8e44ad; }
+        .btn-purple:hover { background: #732d91; }
         .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
         .status-pending { background: #fef7e0; color: #ea8600; }
         .status-approved { background: #e6f4ea; color: #1e8e3e; }
@@ -39,6 +41,8 @@
         .progress-bar-bg { background: #e8eaed; border-radius: 4px; height: 6px; width: 60px; display: inline-block; vertical-align: middle; margin-left: 5px; }
         .progress-bar-fill { background: #1a73e8; height: 6px; border-radius: 4px; transition: width 0.3s; }
         .progress-text { font-size: 12px; color: #5f6368; }
+        .checkbox-large { width: 20px; height: 20px; cursor: pointer; }
+        input[type="text"], input[type="date"] { padding: 6px 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -48,7 +52,7 @@
 
         <div id="content" class="hidden">
 
-            <!-- ==================== SECTION 1: PENDING APPROVALS ==================== -->
+            <!-- PENDING APPROVALS -->
             <div class="section">
                 <h2>⏳ Aprobaciones Pendientes</h2>
                 <div id="pending-message"></div>
@@ -64,12 +68,12 @@
                         </tr>
                     </thead>
                     <tbody id="pending-table-body">
-                        <tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay aprobaciones pendientes.</td></tr>
+                        <tr><td colspan="6">No hay aprobaciones pendientes.</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- ==================== SECTION 2: ALL USERS ==================== -->
+            <!-- ALL USERS -->
             <div class="section">
                 <h2>📊 Todos los Usuarios</h2>
                 <div id="users-message"></div>
@@ -86,17 +90,18 @@
                             <th>Total Acumulado</th>
                             <th>Total Pagado</th>
                             <th>Balance</th>
+                            <th>PIN</th>
                             <th>Dashboard</th>
                             <th>Acción</th>
                         </tr>
                     </thead>
                     <tbody id="users-table-body">
-                        <tr><td colspan="12" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>
+                        <tr><td colspan="13">No hay usuarios registrados.</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- ==================== SECTION 3: PENDING PAYOUTS (READ-ONLY) ==================== -->
+            <!-- PENDING PAYOUTS WITH CHECKBOXES -->
             <div class="section">
                 <h2>💰 Pagos Pendientes</h2>
                 <div id="payouts-message"></div>
@@ -108,11 +113,13 @@
                             <th>Banco</th>
                             <th>Cuenta</th>
                             <th>Monto</th>
-                            <th>Fecha de Creación</th>
+                            <th>Comprobante</th>
+                            <th>Fecha de Pago</th>
+                            <th>Marcar Pagado</th>
                         </tr>
                     </thead>
                     <tbody id="payouts-table-body">
-                        <tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay pagos pendientes.</td></tr>
+                        <tr><td colspan="8">No hay pagos pendientes.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -127,7 +134,7 @@
 
     <script>
         // ============================================
-        // ADMIN – v4.6 – 2026-07-23
+        // ADMIN – v4.8 – 2026-07-23
         // ============================================
         const API_BASE = '';
 
@@ -183,9 +190,9 @@
         }
 
         function render(pendingUsers, allUsers, pendingPayouts) {
-            // ---------- Pending Approvals ----------
+            // Pending Approvals
             if (!pendingUsers || pendingUsers.length === 0) {
-                pendingTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay aprobaciones pendientes.</td></tr>';
+                pendingTbody.innerHTML = '<tr><td colspan="6">No hay aprobaciones pendientes.</td></tr>';
             } else {
                 let html = '';
                 pendingUsers.forEach(u => {
@@ -204,9 +211,9 @@
                 pendingTbody.innerHTML = html;
             }
 
-            // ---------- All Users (with Dashboard button) ----------
+            // All Users
             if (!allUsers || allUsers.length === 0) {
-                usersTbody.innerHTML = '<tr><td colspan="12" style="text-align:center; color:#9aa0a6;">No hay usuarios registrados.</td></tr>';
+                usersTbody.innerHTML = '<tr><td colspan="13">No hay usuarios registrados.</td></tr>';
             } else {
                 let html = '';
                 allUsers.forEach(u => {
@@ -235,6 +242,10 @@
                         <td>RD$ ${totalPagado.toLocaleString()}</td>
                         <td>RD$ ${balance.toLocaleString()}</td>
                         <td>
+                            <span style="font-family:monospace;font-weight:bold;">${u.pin || 'N/A'}</span>
+                            <button class="btn btn-purple btn-sm" onclick="resetPin('${u.id}')">🔄</button>
+                        </td>
+                        <td>
                             <a href="/dashboard?phone=${u.phone}" target="_blank" class="btn btn-sm btn-info">📊 Ver</a>
                         </td>
                         <td>
@@ -245,21 +256,25 @@
                 usersTbody.innerHTML = html;
             }
 
-            // ---------- Pending Payouts (read-only) ----------
+            // Pending Payouts
             if (!pendingPayouts || pendingPayouts.length === 0) {
-                payoutsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#9aa0a6;">No hay pagos pendientes.</td></tr>';
+                payoutsTbody.innerHTML = '<tr><td colspan="8">No hay pagos pendientes.</td></tr>';
             } else {
                 let html = '';
                 pendingPayouts.forEach(p => {
                     const bank = p.bankingDetails?.bankName || 'N/A';
                     const account = p.bankingDetails?.accountNumber || 'N/A';
-                    html += `<tr>
+                    html += `<tr id="payout-row-${p.id}">
                         <td>${p.refereeName}</td>
                         <td>${p.refereePhone}</td>
                         <td>${bank}</td>
                         <td>${account}</td>
                         <td>RD$ ${p.amount.toLocaleString()}</td>
-                        <td>${formatDate(p.createdAt)}</td>
+                        <td><input type="text" id="txn-${p.id}" placeholder="N° Transacción"></td>
+                        <td><input type="date" id="date-${p.id}" value="${new Date().toISOString().split('T')[0]}"></td>
+                        <td>
+                            <input type="checkbox" class="checkbox-large" id="check-${p.id}" onchange="completePayout('${p.id}')">
+                        </td>
                     </tr>`;
                 });
                 payoutsTbody.innerHTML = html;
@@ -311,6 +326,76 @@
                 }
             } catch (err) {
                 alert('❌ Error de conexión: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // RESET PIN
+        // ============================================
+        async function resetPin(userId) {
+            if (!confirm('¿Restablecer el PIN de este usuario?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/reset-pin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert(`✅ PIN restablecido. Nuevo PIN: ${data.newPin}`);
+                    fetchAllData();
+                } else {
+                    alert('❌ Error: ' + (data.error || 'No se pudo restablecer.'));
+                }
+            } catch (err) {
+                alert('❌ Error de conexión: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // COMPLETE PAYOUT
+        // ============================================
+        async function completePayout(payoutId) {
+            const checkbox = document.getElementById(`check-${payoutId}`);
+            if (!checkbox.checked) return;
+
+            if (!confirm(`¿Marcar este pago como completado?`)) {
+                checkbox.checked = false;
+                return;
+            }
+
+            const txnInput = document.getElementById(`txn-${payoutId}`);
+            const dateInput = document.getElementById(`date-${payoutId}`);
+            const transactionNumber = txnInput.value.trim();
+            const transactionDate = dateInput.value;
+
+            if (!transactionNumber) {
+                alert('Por favor, ingresa el número de transacción.');
+                checkbox.checked = false;
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/complete-payout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        payoutId,
+                        transactionNumber,
+                        transactionDate
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert('✅ Pago completado exitosamente');
+                    fetchAllData();
+                } else {
+                    alert('❌ Error: ' + (data.error || 'No se pudo completar el pago'));
+                    checkbox.checked = false;
+                }
+            } catch (err) {
+                alert('❌ Error de conexión: ' + err.message);
+                checkbox.checked = false;
             }
         }
 

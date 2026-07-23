@@ -1,5 +1,5 @@
-// server.js - v5.1 - 2026-07-23
-// Conecta Y Gana RD - Telegram + JSON storage + Admin user support
+// server.js - v5.3 - 2026-07-23
+// Conecta Y Gana RD - Telegram + JSON storage + Admin user support + PIN security
 
 require('dotenv').config();
 const express = require('express');
@@ -75,6 +75,10 @@ function isCodeUnique(code, db) {
     return !db.users.some(u => u.referralCode === code);
 }
 
+function generatePin() {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
 // ============================================
 // TELEGRAM SENDER
 // ============================================
@@ -146,7 +150,79 @@ app.get('/api/health', (req, res) => {
 });
 
 // ============================================
-// REGISTER USER (with phone sanitization)
+// VERIFY PIN (for dashboard login)
+// ============================================
+app.post('/api/verify-pin', (req, res) => {
+    try {
+        const { phone, pin } = req.body;
+        if (!phone || !pin) {
+            return res.status(400).json({ error: 'Teléfono y PIN son requeridos' });
+        }
+
+        const db = readDB();
+        const user = db.users.find(u => u.phone === phone);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        if (user.pin !== pin) {
+            return res.status(401).json({ error: 'PIN incorrecto' });
+        }
+
+        // Return user data (without sensitive fields)
+        res.json({
+            success: true,
+            user: {
+                id: user.id,
+                name: user.name,
+                phone: user.phone,
+                status: user.status,
+                referralCode: user.referralCode,
+                totalCustomers: user.totalCustomers || 0,
+                activeCustomers: user.activeCustomers || 0,
+                pendingCustomers: user.pendingCustomers || 0,
+                totalPaid: user.totalPaid || 0,
+                expiresAt: user.expiresAt,
+                createdAt: user.createdAt,
+                bankingDetails: user.bankingDetails || null,
+                daysRemaining: user.expiresAt ?
+                    Math.ceil((new Date(user.expiresAt) - new Date()) / (1000 * 60 * 60 * 24)) : null
+            }
+        });
+    } catch (error) {
+        console.error('Verify PIN error:', error);
+        res.status(500).json({ error: 'Error al verificar PIN' });
+    }
+});
+
+// ============================================
+// ADMIN: RESET USER PIN
+// ============================================
+app.post('/api/admin/reset-pin', (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+        const db = readDB();
+        const user = db.users.find(u => u.id === userId);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const newPin = generatePin();
+        user.pin = newPin;
+        writeDB(db);
+
+        res.json({
+            success: true,
+            message: 'PIN restablecido exitosamente',
+            newPin: newPin
+        });
+    } catch (error) {
+        console.error('Reset PIN error:', error);
+        res.status(500).json({ error: 'Error al restablecer PIN' });
+    }
+});
+
+// ============================================
+// REGISTER USER (with PIN)
 // ============================================
 app.post('/api/register', async (req, res) => {
     try {
@@ -174,6 +250,8 @@ app.post('/api/register', async (req, res) => {
             return res.status(400).json({ error: 'Este comprobante ya ha sido utilizado' });
         }
 
+        const pin = generatePin();
+
         const newUser = {
             id: shortid.generate(),
             phone: finalPhone,
@@ -184,6 +262,7 @@ app.post('/api/register', async (req, res) => {
             status: 'pending',
             referralCode: null,
             telegramChatId: telegramChatId || null,
+            pin: pin,  // NEW: 4-digit PIN
             createdAt: new Date().toISOString(),
             approvedAt: null,
             expiresAt: null,
@@ -193,13 +272,13 @@ app.post('/api/register', async (req, res) => {
             totalPaid: 0,
             bankingDetails: null,
             deviceId: null,
-            skipReferralEarnings: false   // NEW: admin users can be set to true
+            skipReferralEarnings: false
         };
 
         db.users.push(newUser);
         writeDB(db);
 
-        // Update referee's pending count if referee exists and is approved (skip if admin)
+        // Update referee pending count (skip if admin)
         if (refereeCode) {
             const referee = db.users.find(u => u.referralCode === refereeCode);
             if (referee && referee.status === 'approved') {
@@ -212,12 +291,14 @@ app.post('/api/register', async (req, res) => {
             }
         }
 
-        // Send Telegram notification (always, even for admin)
+        // Send notification
         await sendNotification(finalPhone,
             `📋 Hola ${name}, hemos recibido tu depósito de RD 1,250.\n\n` +
             `🔍 Tu comprobante #${comprobante} está en revisión.\n` +
             `⏰ El proceso puede tomar hasta 48 horas.\n\n` +
             `📲 Te notificaremos cuando sea aprobado.\n\n` +
+            `🔐 Tu PIN para acceder al dashboard es: *${pin}*\n` +
+            `Guárdalo bien, lo necesitarás junto a tu número de teléfono.\n\n` +
             `"Tú ayudas, otros crecen, todos ganamos."`
         );
 
@@ -238,7 +319,8 @@ app.post('/api/register', async (req, res) => {
             success: true,
             message: 'Depósito recibido. Está en revisión (48 horas).',
             userId: newUser.id,
-            status: 'pending'
+            status: 'pending',
+            pin: pin  // return pin so user sees it in the alert
         });
 
     } catch (error) {
@@ -273,7 +355,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
             expiryDate.setDate(expiryDate.getDate() + 90);
             user.expiresAt = expiryDate.toISOString();
 
-            // Decrease pending count of referee (if any, and only if referee is not admin)
+            // Decrease pending count of referee (skip if admin)
             if (user.refereeCode) {
                 const referee = db.users.find(u => u.referralCode === user.refereeCode);
                 if (referee && referee.status === 'approved') {
@@ -300,7 +382,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
                 `"Tú ayudas, otros crecen, todos ganamos."`
             );
 
-            // Notify referee and update their counts (skip if admin)
+            // Update referee (skip if admin)
             if (user.refereeCode) {
                 const referee = db.users.find(u => u.referralCode === user.refereeCode);
                 if (referee && referee.status === 'approved') {
@@ -317,7 +399,7 @@ app.post('/api/admin/approve-payment', async (req, res) => {
                             `🏆 Gana RD 5,000 al llegar a 5 clientes.`
                         );
 
-                        // Check milestone for referee (only if not admin)
+                        // Check milestone (only if not admin)
                         if (referee.activeCustomers > 0 && referee.activeCustomers % 5 === 0) {
                             const milestone = Math.floor(referee.activeCustomers / 5);
                             const existingPayout = db.payouts.find(p =>
@@ -435,7 +517,31 @@ app.post('/api/admin/update-referee', async (req, res) => {
 });
 
 // ============================================
-// ADMIN: MAKE USER ADMIN (skip earnings, no expiry)
+// ADMIN: SET REFERRAL CODE
+// ============================================
+app.post('/api/admin/set-referral-code', async (req, res) => {
+    try {
+        const { userId, newCode } = req.body;
+        if (!userId || !newCode) {
+            return res.status(400).json({ error: 'userId and newCode are required' });
+        }
+        const db = readDB();
+        const user = db.users.find(u => u.id === userId);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (db.users.some(u => u.referralCode === newCode && u.id !== userId)) {
+            return res.status(400).json({ error: 'Este código ya está en uso' });
+        }
+        user.referralCode = newCode;
+        writeDB(db);
+        res.json({ success: true, message: 'Código de referido actualizado', referralCode: newCode });
+    } catch (error) {
+        console.error('Set referral code error:', error);
+        res.status(500).json({ error: 'Error al actualizar código' });
+    }
+});
+
+// ============================================
+// ADMIN: MAKE USER ADMIN
 // ============================================
 app.post('/api/admin/make-admin-user', async (req, res) => {
     try {
@@ -447,7 +553,7 @@ app.post('/api/admin/make-admin-user', async (req, res) => {
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
         user.skipReferralEarnings = true;
-        user.expiresAt = null; // no expiry
+        user.expiresAt = null;
         writeDB(db);
 
         res.json({
@@ -461,7 +567,7 @@ app.post('/api/admin/make-admin-user', async (req, res) => {
 });
 
 // ============================================
-// ADMIN: EXTEND USER EXPIRATION
+// ADMIN: EXTEND EXPIRATION
 // ============================================
 app.post('/api/admin/extend-expiry', async (req, res) => {
     try {
@@ -489,7 +595,7 @@ app.post('/api/admin/extend-expiry', async (req, res) => {
 });
 
 // ============================================
-// GET USER BY ID
+// GET USER BY ID (for admin)
 // ============================================
 app.get('/api/admin/user/:id', (req, res) => {
     try {
@@ -504,7 +610,7 @@ app.get('/api/admin/user/:id', (req, res) => {
 });
 
 // ============================================
-// GET USER DASHBOARD
+// GET USER DASHBOARD (deprecated – use verify-pin instead)
 // ============================================
 app.get('/api/user/:phone', (req, res) => {
     try {
@@ -527,6 +633,7 @@ app.get('/api/user/:phone', (req, res) => {
             createdAt: user.createdAt,
             bankingDetails: user.bankingDetails || null,
             skipReferralEarnings: user.skipReferralEarnings || false,
+            pin: user.pin || null, // Only for admin use; we'll expose it in admin panel
             daysRemaining: user.expiresAt ?
                 Math.ceil((new Date(user.expiresAt) - new Date()) / (1000 * 60 * 60 * 24)) : null
         });
@@ -683,7 +790,6 @@ app.post('/api/admin/complete-payout', async (req, res) => {
 
         const referee = db.users.find(u => u.phone === payout.refereePhone);
         if (referee) {
-            // Only update totalPaid if the referee is not an admin
             if (!referee.skipReferralEarnings) {
                 referee.totalPaid = (referee.totalPaid || 0) + payout.amount;
             } else {
@@ -832,6 +938,7 @@ app.listen(PORT, () => {
     console.log(`🤖 Bot Token Set: ${TELEGRAM_BOT_TOKEN ? '✅ YES' : '❌ NO'}`);
     console.log(`👤 Default Chat ID: ${DEFAULT_CHAT_ID || '❌ NOT SET'}`);
     console.log(`🗄️  Storage: JSON file (persistent disk)`);
+    console.log(`🔐 PIN security: ENABLED`);
     console.log('========================================');
     console.log('✅ ALL CREDENTIALS CONFIGURED!');
     console.log('========================================');
@@ -840,8 +947,11 @@ app.listen(PORT, () => {
     console.log(`   • POST /api/admin/approve-payment`);
     console.log(`   • POST /api/admin/update-user`);
     console.log(`   • POST /api/admin/update-referee`);
-    console.log(`   • POST /api/admin/make-admin-user (NEW)`);
+    console.log(`   • POST /api/admin/set-referral-code`);
+    console.log(`   • POST /api/admin/make-admin-user`);
     console.log(`   • POST /api/admin/extend-expiry`);
+    console.log(`   • POST /api/admin/reset-pin (NEW)`);
+    console.log(`   • POST /api/verify-pin (NEW)`);
     console.log(`   • GET  /api/admin/user/:id`);
     console.log(`   • GET  /api/user/:phone`);
     console.log(`   • POST /api/user/update-telegram`);

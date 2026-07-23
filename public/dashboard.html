@@ -1,4 +1,4 @@
-<!-- dashboard.html - v2.5 - 2026-07-23 -->
+<!-- dashboard.html - v2.6 - 2026-07-23 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -26,82 +26,105 @@
         .banking-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
         .banking-form select, .banking-form input { padding: 8px; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px; flex: 1; min-width: 150px; }
         .banking-form button { flex: 0 0 auto; }
+        .login-container { max-width: 400px; margin: 40px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .login-container h2 { text-align: center; margin-bottom: 20px; }
+        .login-container input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #dadce0; border-radius: 6px; font-size: 16px; }
+        .login-container .btn { width: 100%; }
     </style>
 </head>
 <body>
     <div class="container" id="app">
         <h1>📊 Conecta Y Gana RD</h1>
-        <div id="loading" class="loading">⏳ Cargando tu información...</div>
-        <div id="error-area" class="hidden"></div>
-        <div id="content" class="hidden">
-            <p id="user-name">👋 Bienvenido, <strong>Cargando...</strong></p>
-            <div class="stats-grid">
-                <div class="stat-card"><div class="number" id="stat-clients">0</div><div class="label">Total Clientes</div></div>
-                <div class="stat-card"><div class="number" id="stat-paid">RD$0</div><div class="label">Total Pagado</div></div>
-                <div class="stat-card"><div class="number" id="stat-pending">RD$0</div><div class="label">Balance</div></div>
-            </div>
-            <div class="section">
-                <h3>🔗 Tu enlace de referido</h3>
-                <div class="referral-link-box">
-                    <input type="text" id="referral-link" readonly>
-                    <button class="btn" onclick="copyLink()">📋 Copiar</button>
+
+        <!-- LOGIN SECTION -->
+        <div id="login-section">
+            <div class="login-container">
+                <h2>🔐 Acceso al Dashboard</h2>
+                <p style="text-align:center;color:#5f6368;margin-bottom:15px;">Ingresa tu número de teléfono y PIN</p>
+                <input type="text" id="login-phone" placeholder="Teléfono (ej: 8498634889)" required>
+                <input type="password" id="login-pin" placeholder="PIN (4 dígitos)" maxlength="4" required>
+                <button class="btn" id="login-btn">Entrar</button>
+                <div id="login-error" style="color:#d93025;margin-top:10px;text-align:center;"></div>
+                <div style="margin-top:15px;font-size:12px;color:#9aa0a6;text-align:center;">
+                    ¿No tienes cuenta? <a href="/">Regístrate aquí</a><br>
+                    ¿Olvidaste tu PIN? Contacta al administrador.
                 </div>
             </div>
-            <div class="section" id="payout-section" style="display: none;">
-                <h3>💰 Tienes un pago pendiente</h3>
-                <p style="color: #1e8e3e; font-size: 18px; font-weight: 700;" id="pending-amount">RD$0</p>
-                <p style="color: #5f6368;">Cuando el administrador lo procese, aparecerá en "Total Pagado".</p>
-            </div>
-            <div class="section">
-                <h3>🏦 Datos Bancarios</h3>
-                <form id="banking-form" class="banking-form">
-                    <select id="bank-name" required>
-                        <option value="">Selecciona un banco</option>
-                        <option value="BanReservas">BanReservas</option>
-                        <option value="Banco Popular">Banco Popular</option>
-                        <option value="Banco BHD León">Banco BHD León</option>
-                        <option value="Banco Santa Cruz">Banco Santa Cruz</option>
-                        <option value="Banco Múltiple Caribe">Banco Múltiple Caribe</option>
-                        <option value="Banco Múltiple Vimenca">Banco Múltiple Vimenca</option>
-                        <option value="Banco Múltiple BDI">Banco Múltiple BDI</option>
-                        <option value="Banco Múltiple Ademi">Banco Múltiple Ademi</option>
-                        <option value="Banco Múltiple Fihogar">Banco Múltiple Fihogar</option>
-                        <option value="Banco Múltiple Córdova">Banco Múltiple Córdova</option>
-                        <option value="Banco Múltiple Lafise">Banco Múltiple Lafise</option>
-                        <option value="Banco Múltiple Promérica">Banco Múltiple Promérica</option>
-                        <option value="Banco Múltiple Atlántico">Banco Múltiple Atlántico</option>
-                        <option value="Banco Múltiple Unión">Banco Múltiple Unión</option>
-                        <option value="Otro">Otro</option>
-                    </select>
-                    <input type="text" id="account-number" placeholder="Número de cuenta" required>
-                    <select id="account-type">
-                        <option value="corriente">Corriente</option>
-                        <option value="ahorros">Ahorros</option>
-                    </select>
-                    <button type="submit" class="btn">Guardar</button>
-                </form>
-            </div>
-            <div class="footer">
-                <a href="/">🏠 Inicio</a> |
-                <a href="/admin">🛠️ Admin</a> |
-                <a href="/terms">📜 Términos</a>
+        </div>
+
+        <!-- DASHBOARD CONTENT -->
+        <div id="dashboard-content" class="hidden">
+            <div id="loading" class="loading">⏳ Cargando tu información...</div>
+            <div id="error-area" class="hidden"></div>
+            <div id="content" class="hidden">
+                <p id="user-name">👋 Bienvenido, <strong>Cargando...</strong></p>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="number" id="stat-clients">0</div><div class="label">Total Clientes</div></div>
+                    <div class="stat-card"><div class="number" id="stat-paid">RD$0</div><div class="label">Total Pagado</div></div>
+                    <div class="stat-card"><div class="number" id="stat-pending">RD$0</div><div class="label">Balance</div></div>
+                </div>
+                <div class="section">
+                    <h3>🔗 Tu enlace de referido</h3>
+                    <div class="referral-link-box">
+                        <input type="text" id="referral-link" readonly>
+                        <button class="btn" onclick="copyLink()">📋 Copiar</button>
+                    </div>
+                </div>
+                <div class="section" id="payout-section" style="display: none;">
+                    <h3>💰 Tienes un pago pendiente</h3>
+                    <p style="color: #1e8e3e; font-size: 18px; font-weight: 700;" id="pending-amount">RD$0</p>
+                    <p style="color: #5f6368;">Cuando el administrador lo procese, aparecerá en "Total Pagado".</p>
+                </div>
+                <div class="section">
+                    <h3>🏦 Datos Bancarios</h3>
+                    <form id="banking-form" class="banking-form">
+                        <select id="bank-name" required>
+                            <option value="">Selecciona un banco</option>
+                            <option value="BanReservas">BanReservas</option>
+                            <option value="Banco Popular">Banco Popular</option>
+                            <option value="Banco BHD León">Banco BHD León</option>
+                            <option value="Banco Santa Cruz">Banco Santa Cruz</option>
+                            <option value="Banco Múltiple Caribe">Banco Múltiple Caribe</option>
+                            <option value="Banco Múltiple Vimenca">Banco Múltiple Vimenca</option>
+                            <option value="Banco Múltiple BDI">Banco Múltiple BDI</option>
+                            <option value="Banco Múltiple Ademi">Banco Múltiple Ademi</option>
+                            <option value="Banco Múltiple Fihogar">Banco Múltiple Fihogar</option>
+                            <option value="Banco Múltiple Córdova">Banco Múltiple Córdova</option>
+                            <option value="Banco Múltiple Lafise">Banco Múltiple Lafise</option>
+                            <option value="Banco Múltiple Promérica">Banco Múltiple Promérica</option>
+                            <option value="Banco Múltiple Atlántico">Banco Múltiple Atlántico</option>
+                            <option value="Banco Múltiple Unión">Banco Múltiple Unión</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                        <input type="text" id="account-number" placeholder="Número de cuenta" required>
+                        <select id="account-type">
+                            <option value="corriente">Corriente</option>
+                            <option value="ahorros">Ahorros</option>
+                        </select>
+                        <button type="submit" class="btn">Guardar</button>
+                    </form>
+                </div>
+                <div class="footer">
+                    <a href="/">🏠 Inicio</a> |
+                    <a href="/admin">🛠️ Admin</a> |
+                    <a href="/terms">📜 Términos</a>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         // ============================================
-        // DASHBOARD – v2.5 – 2026-07-23
+        // DASHBOARD – v2.6 – 2026-07-23
         // ============================================
         const API_BASE = '';
         const PHONE_KEY = 'dashboard_phone';
 
+        const loginSection = document.getElementById('login-section');
+        const dashboardContent = document.getElementById('dashboard-content');
         const loading = document.getElementById('loading');
         const content = document.getElementById('content');
         const errorArea = document.getElementById('error-area');
-
-        function getPhone() { return localStorage.getItem(PHONE_KEY) || ''; }
-        function savePhone(p) { localStorage.setItem(PHONE_KEY, p); }
 
         function showError(msg) {
             errorArea.classList.remove('hidden');
@@ -113,6 +136,66 @@
             errorArea.classList.add('hidden');
             errorArea.innerHTML = '';
         }
+
+        async function handleLogin() {
+            const phoneInput = document.getElementById('login-phone');
+            const pinInput = document.getElementById('login-pin');
+            const loginBtn = document.getElementById('login-btn');
+            const errorDiv = document.getElementById('login-error');
+
+            const phone = phoneInput.value.trim().replace(/\D/g, '');
+            const pin = pinInput.value.trim();
+
+            if (!phone || !pin) {
+                errorDiv.textContent = 'Por favor, ingresa tu teléfono y PIN.';
+                return;
+            }
+            if (pin.length !== 4) {
+                errorDiv.textContent = 'El PIN debe tener 4 dígitos.';
+                return;
+            }
+
+            errorDiv.textContent = '';
+            loginBtn.disabled = true;
+            loginBtn.textContent = '⏳ Verificando...';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/verify-pin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, pin })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    errorDiv.textContent = data.error || 'Error al verificar.';
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Entrar';
+                    return;
+                }
+
+                // Success – hide login, show dashboard
+                loginSection.classList.add('hidden');
+                dashboardContent.classList.remove('hidden');
+                savePhone(phone);
+                loadDashboard(phone);
+
+            } catch (err) {
+                errorDiv.textContent = 'Error de conexión. Intenta de nuevo.';
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Entrar';
+            }
+        }
+
+        document.getElementById('login-btn').addEventListener('click', handleLogin);
+        document.getElementById('login-pin').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+        document.getElementById('login-phone').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        function getPhone() { return localStorage.getItem(PHONE_KEY) || ''; }
+        function savePhone(p) { localStorage.setItem(PHONE_KEY, p); }
 
         async function loadDashboard(phone) {
             try {
@@ -131,7 +214,7 @@
                 }
                 const user = await userRes.json();
 
-                // Get payouts (to show pending)
+                // Get payouts
                 const payRes = await fetch(`${API_BASE}/api/user/${phone}/payouts`);
                 const payouts = payRes.ok ? await payRes.json() : { payouts: [] };
 
@@ -148,11 +231,10 @@
             document.getElementById('user-name').innerHTML = `👋 Bienvenido, <strong>${user.name || 'Usuario'}</strong>`;
 
             const totalClients = user.totalCustomers || 0;
-            const totalAcumulado = totalClients * 1000;   // Each client = RD$1,000
+            const totalAcumulado = totalClients * 1000;
             const totalPagado = user.totalPaid || 0;
             const balance = totalAcumulado - totalPagado;
 
-            // --- FIX: Pending payout = only full 5,000 milestones ---
             const totalEarnedFromMilestones = Math.floor(totalClients / 5) * 5000;
             const pendingPayout = totalEarnedFromMilestones - totalPagado;
 
@@ -164,7 +246,6 @@
             const code = user.referralCode || '';
             document.getElementById('referral-link').value = code ? `${baseUrl}/?ref=${code}` : '⚠️ Sin código aún';
 
-            // Show pending payout section only if pendingPayout > 0
             const section = document.getElementById('payout-section');
             if (pendingPayout > 0) {
                 section.style.display = 'block';
@@ -173,7 +254,6 @@
                 section.style.display = 'none';
             }
 
-            // Banking details
             if (user.bankingDetails) {
                 document.getElementById('bank-name').value = user.bankingDetails.bankName || '';
                 document.getElementById('account-number').value = user.bankingDetails.accountNumber || '';
@@ -220,26 +300,14 @@
             }
         });
 
-        // Init
+        // Init – if we have stored phone, we can pre-fill login
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
-            let phone = params.get('phone') || getPhone();
-
-            if (!phone) {
-                const userPhone = prompt('📱 Ingresa tu número de teléfono (ej: 8498634889):');
-                if (userPhone) {
-                    phone = userPhone.replace(/\D/g, '');
-                    savePhone(phone);
-                } else {
-                    window.location.href = '/';
-                    return;
-                }
-            }
-
+            const phone = params.get('phone') || getPhone();
             if (phone) {
-                loadDashboard(phone);
-            } else {
-                showError('No se pudo obtener tu número.');
+                document.getElementById('login-phone').value = phone;
+                // Optionally auto-focus PIN field
+                document.getElementById('login-pin').focus();
             }
         });
     </script>
